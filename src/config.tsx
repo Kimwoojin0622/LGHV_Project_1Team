@@ -14,15 +14,13 @@ export const baseConfig = {
   titleSuffix: "",
   search: true,
   header: true,
-  headerText: "Logo",
+  headerText: "churn-pursuit",
   footer: true,
   footerText: (
     <>
       <span>
-        © MIT {new Date().getFullYear()}, Made with ❤️ by {""}
-        <a href="https://github.com/mrtzdev" target="_blank" rel="noreferrer">
-          Mrtzdev
-        </a>
+        © LGHV {new Date().getFullYear()}, Made with ❤️ by {"C.P."}
+        
       </span>
     </>
   ),
@@ -30,7 +28,7 @@ export const baseConfig = {
   logo: (
     <>
       <img
-        src={process.env.PUBLIC_URL + "/logo.png"}
+        src={process.env.PUBLIC_URL + "/team-logo.png"}
         alt="logo"
         width="30"
         height="22"

@@ -71,7 +71,7 @@ const defaultOptions = {
     axisBorder: {
       show: false,
     },
-    type: "datetime",
+    type: "category",
   },
   yaxis: {
     labels: {

@@ -7,227 +7,183 @@ import {
   Placeholder,
   useTheme,
 } from "@aws-amplify/ui-react";
-import { MdRemoveRedEye, MdWeb, MdPermIdentity } from "react-icons/md";
-
-import MiniStatistics from "./MiniStatistics";
-import TrafficSources from "./TrafficSources";
-import SalesSummary from "./SalesSummary";
+import { MdGroup, MdGroupAdd, MdGroupOff } from "react-icons/md";
 import TrafficSummary from "./TrafficSummary";
-import CustomersSummary from "./CustomersSummary";
-
+import MiniStatistics from "./MiniStatistics";
+import SalesSummary from "./SalesSummary";
+import TrafficSources from "./TrafficSources";
 import "./Dashboard.css";
 
-/// Mock Data
-const barChartDataDemo = [
-  {
-    name: "Web",
-    data: [
-      11, 8, 9, 10, 3, 11, 11, 11, 12, 13, 2, 12, 5, 8, 22, 6, 8, 6, 4, 1, 8,
-      24, 29, 51, 40, 47, 23, 26, 50, 26, 22, 27, 46, 47, 81, 46, 40,
-    ],
-  },
-  {
-    name: "Social",
-    data: [
-      7, 5, 4, 3, 3, 11, 4, 7, 5, 12, 12, 15, 13, 12, 6, 7, 7, 1, 5, 5, 2, 12,
-      4, 6, 18, 3, 5, 2, 13, 15, 20, 47, 18, 15, 11, 10, 9,
-    ],
-  },
-  {
-    name: "Other",
-    data: [
-      4, 9, 11, 7, 8, 3, 6, 5, 5, 4, 6, 4, 11, 10, 3, 6, 7, 5, 2, 8, 4, 9, 9, 2,
-      6, 7, 5, 1, 8, 3, 12, 3, 4, 9, 7, 11, 10,
-    ],
-  },
-];
-
-const lineChartData = [
-  {
-    name: "Mobile apps",
-    data: [50, 40, 300, 220, 500, 250, 400, 230, 500],
-  },
-  {
-    name: "Websites",
-    data: [30, 90, 40, 140, 290, 290, 340, 230, 400],
-  },
-];
-
-const customersData = [
-  {
-    name: "New Customers",
-    data: [50, 60, 140, 190, 180, 230],
-  },
-];
-
-const getChartData = () =>
-  new Promise((resolve, reject) => {
-    if (!barChartDataDemo) {
-      return setTimeout(() => reject(new Error("no data")), 750);
-    }
-
-    setTimeout(() => resolve(Object.values(barChartDataDemo)), 750);
-  });
+interface MonthlySummary {
+  month: string;
+  total_rows: number;
+  churn_y_count: number;
+  churn_change: number;
+}
 
 const Dashboard = () => {
-  const [barChartData, setBarChartData] = useState<any | null>(null);
-  const [trafficSourceData, setTrafficSourceData] = useState<any | null>(null);
+  const [monthlySummary, setMonthlySummary] = useState<MonthlySummary[]>([]); // 전체 월별 데이터
+  const [selectedMonth, setSelectedMonth] = useState<string>(""); // 선택된 월
+  const [selectedData, setSelectedData] = useState<MonthlySummary | null>(null); // 선택된 월 데이터
+  const [churnSegments, setChurnSegments] = useState<{ segment_name: string; segment_count: number }[]>([]);
+
+
   const { tokens } = useTheme();
 
+  // 전체 데이터 가져오기
   useEffect(() => {
-    const doChartData = async () => {
-      const result = await getChartData();
-      setBarChartData(result);
-      setTrafficSourceData([112332, 123221, 432334, 342334, 133432]);
+    const fetchMonthlySummary = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:8000/visualize/monthly-summary");
+        const data = await response.json();
+        setMonthlySummary(data);
+
+        if (data.length > 0) {
+          setSelectedMonth(data[0].month); // 첫 번째 월 기본 선택
+        }
+      } catch (error) {
+        console.error("Error fetching monthly summary:", error);
+      }
     };
 
-    doChartData();
+    fetchMonthlySummary();
   }, []);
+
+  // 선택된 월 데이터 필터링
+  useEffect(() => {
+    if (selectedMonth) {
+      const filteredData = monthlySummary.find((item) => item.month === selectedMonth) || null;
+      setSelectedData(filteredData);
+      const fetchChurnSegments = async () => {
+        try {
+          const response = await fetch(`http://127.0.0.1:8000/visualize/churn-segments?month=${selectedMonth}`);
+          const segmentData = await response.json();
+          setChurnSegments(segmentData); // 데이터 설정
+        } catch (error) {
+          console.error("Error fetching churn segments:", error);
+          setChurnSegments([]); // 에러 시 빈 배열로 설정
+        }
+      };
+  
+      fetchChurnSegments();
+
+    }
+  }, [selectedMonth, monthlySummary]);
+
+  // 드롭다운 변경 핸들러
+  const handleMonthChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedMonth(event.target.value);
+  };
+
+  if (!selectedData) {
+    return <div>Loading...</div>;
+  }
+
+  // barChartDataDemo (월별 데이터 유지)
+  const barChartData = [
+    {
+      name: "Total Rows",
+      data: monthlySummary.map((item) => item.total_rows),
+    },
+    {
+      name: "Churn",
+      data: monthlySummary.map((item) => item.churn_y_count),
+    },
+  ];
+
+  // lineChartData (월별 churn_y_count)
+  const lineChartData = [
+    {
+      name: "Churn Count",
+      data: monthlySummary.map((item) => item.churn_y_count),
+    },
+  ];
 
   return (
     <>
       <div>
         <h2>Dashboard</h2>
+        {/* 드롭다운 */}
+        <select value={selectedMonth} onChange={handleMonthChange}>
+          {monthlySummary.map((item) => (
+            <option key={item.month} value={item.month}>
+              {item.month}
+            </option>
+          ))}
+        </select>
       </div>
       <View borderRadius="6px" maxWidth="100%" padding="0rem" minHeight="100vh">
         <Grid
           templateColumns={{ base: "1fr", large: "1fr 1fr 1fr" }}
-          templateRows={{ base: "repeat(4, 10rem)", large: "repeat(3, 8rem)" }}
+          templateRows={{ base: "repeat(6, auto)", large: "repeat(4, auto)" }}
           gap={tokens.space.xl}
         >
-          <View rowSpan={{ base: 1, large: 1 }}>
-            <MiniStatistics
-              title="Page Views"
-              amount="321,236"
-              icon={<MdRemoveRedEye />}
-            />
+          {/* 총 고객 수 */}
+          <View columnSpan={1}>
+            <MiniStatistics title="총 고객 수" amount={selectedData.total_rows.toLocaleString()} icon={<MdGroup />} />
           </View>
-          <View rowSpan={{ base: 1, large: 1 }}>
-            <MiniStatistics title="Visits" amount="251,607" icon={<MdWeb />} />
+          {/* 해지 고객 */}
+          <View columnSpan={1}>
+            <MiniStatistics title="해지 고객" amount={selectedData.churn_y_count.toLocaleString()} icon={<MdGroupOff />} />
           </View>
-          <View rowSpan={{ base: 1, large: 1 }}>
-            <MiniStatistics
-              title="Unique Visitors"
-              amount="23,762"
-              icon={<MdPermIdentity />}
-            />
+          {/* 전월 대비 */}
+          <View columnSpan={1}>
+            <MiniStatistics title="전월 대비" amount={selectedData.churn_change.toLocaleString()} icon={<MdGroupAdd />} />
           </View>
 
-          <View columnSpan={[1, 1, 1, 2]} rowSpan={{ base: 3, large: 4 }}>
+          {/* Line Chart (해지 고객 변화) */}
+          <View columnSpan={2} rowSpan={2}>
             <Card borderRadius="15px">
-              <div className="card-title">Traffic Summary</div>
+              <div className="card-title">해지 고객 변화</div>
+              <div className="chart-wrap">
+                {lineChartData ? (
+                  <div className="row">
+                    <SalesSummary
+                      title="Churn Change"
+                      data={lineChartData}
+                      type="line"
+                      labels={monthlySummary.map((item) => item.month)}
+                    />
+                  </div>
+                ) : (
+                  <Flex direction="column" minHeight="285px">
+                    <Placeholder size="small" />
+                    <Placeholder size="small" />
+                    <Placeholder size="small" />
+                    <Placeholder size="small" />
+                  </Flex>
+                )}
+              </div>
+            </Card>
+          </View>
+
+          {/* 파이차트 (Customer Segments) */}
+          <View columnSpan={1} rowSpan={2}>
+            <Card height="100%" borderRadius="15px">
+              <div className="card-title">해지 고객 분류</div>
+              <div className="chart-wrap">
+                <TrafficSources
+                  title="해지 고객 분류"
+                  data={churnSegments.map((segment) => segment.segment_count)}
+                  type="donut"
+                  labels={churnSegments.map((segment) => segment.segment_name)}
+                />
+              </div>
+            </Card>
+          </View>
+
+          {/* Bar Chart (월별 추이) */}
+          <View columnSpan={2} rowSpan={2}>
+            <Card borderRadius="15px">
+              <div className="card-title">월별 추이</div>
               <div className="chart-wrap">
                 {barChartData ? (
                   <div className="row">
                     <TrafficSummary
-                      title="Traffic Summary"
+                      title="Monthly Trends"
                       data={barChartData}
                       type="bar"
-                      labels={[
-                        "2022-01-20",
-                        "2022-01-21",
-                        "2022-01-22",
-                        "2022-01-23",
-                        "2022-01-24",
-                        "2022-01-25",
-                        "2022-01-26",
-                        "2022-01-27",
-                        "2022-01-28",
-                        "2022-01-29",
-                        "2022-01-30",
-                        "2022-02-01",
-                        "2022-02-02",
-                        "2022-02-03",
-                        "2022-02-04",
-                        "2022-02-05",
-                        "2022-02-06",
-                        "2022-02-07",
-                        "2022-02-08",
-                        "2022-02-09",
-                        "2022-02-10",
-                        "2022-02-11",
-                        "2022-02-12",
-                        "2022-02-13",
-                        "2022-02-14",
-                        "2022-02-15",
-                        "2022-02-16",
-                        "2022-02-17",
-                        "2022-02-18",
-                        "2022-02-19",
-                        "2022-02-20",
-                        "2022-02-21",
-                        "2022-02-22",
-                        "2022-02-23",
-                        "2022-02-24",
-                        "2022-02-25",
-                        "2022-02-26",
-                      ]}
-                    />
-                  </div>
-                ) : (
-                  <Flex direction="column" minHeight="285px">
-                    <Placeholder size="small" />
-                    <Placeholder size="small" />
-                    <Placeholder size="small" />
-                    <Placeholder size="small" />
-                  </Flex>
-                )}
-              </div>
-            </Card>
-          </View>
-          <View rowSpan={{ base: 1, large: 4 }}>
-            <Card height="100%" borderRadius="15px">
-              <div className="card-title">Traffic Sources</div>
-              <div className="chart-wrap">
-                {barChartData ? (
-                  <TrafficSources
-                    title="Traffic Sources"
-                    data={trafficSourceData}
-                    type="donut"
-                    labels={[
-                      "Direct",
-                      "Internal",
-                      "Referrals",
-                      "Search Engines",
-                      "Other",
-                    ]}
-                  />
-                ) : (
-                  <Flex direction="column" minHeight="285px">
-                    <Placeholder size="small" />
-                    <Placeholder size="small" />
-                    <Placeholder size="small" />
-                    <Placeholder size="small" />
-                  </Flex>
-                )}
-              </div>
-            </Card>
-          </View>
-
-          <View columnSpan={[1, 1, 1, 2]} rowSpan={{ base: 3, large: 4 }}>
-            <Card borderRadius="15px">
-              <div className="card-title">Sales Summary</div>
-              <div className="chart-wrap">
-                {barChartData ? (
-                  <div className="row">
-                    <SalesSummary
-                      title="Sales Summary"
-                      data={lineChartData}
-                      type="line"
-                      labels={[
-                        "Jan",
-                        "Feb",
-                        "Mar",
-                        "Apr",
-                        "May",
-                        "Jun",
-                        "Jul",
-                        "Aug",
-                        "Sep",
-                        "Oct",
-                        "Nov",
-                        "Dec",
-                      ]}
+                      labels={monthlySummary.map((item) => item.month)}
                     />
                   </div>
                 ) : (
@@ -242,27 +198,17 @@ const Dashboard = () => {
             </Card>
           </View>
 
-          <View rowSpan={{ base: 1, large: 4 }}>
+          {/* 신규 고객 */}
+          <View columnSpan={1} rowSpan={2}>
             <Card height="100%" borderRadius="15px">
-              <div className="card-title">New Customers</div>
+              <div className="card-title">신규 고객</div>
               <div className="chart-wrap">
-                {barChartData ? (
-                  <div className="row">
-                    <CustomersSummary
-                      title="CutomersSummary"
-                      data={customersData}
-                      type="line"
-                      labels={["Jan", "Feb", "Mar", "Apr", "May", "Jun"]}
-                    />
-                  </div>
-                ) : (
-                  <Flex direction="column" minHeight="285px">
-                    <Placeholder size="small" />
-                    <Placeholder size="small" />
-                    <Placeholder size="small" />
-                    <Placeholder size="small" />
-                  </Flex>
-                )}
+                <Flex direction="column" minHeight="285px">
+                  <Placeholder size="small" />
+                  <Placeholder size="small" />
+                  <Placeholder size="small" />
+                  <Placeholder size="small" />
+                </Flex>
               </div>
             </Card>
           </View>
@@ -271,5 +217,7 @@ const Dashboard = () => {
     </>
   );
 };
+
+
 
 export default Dashboard;
