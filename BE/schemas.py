@@ -18,7 +18,6 @@ class CustomerSummaryRead(BaseModel):
 
 # TpsCancel 관련 스키마
 class TpsCancelRead(BaseModel):
-    sha2_hash: str  # 고객 ID
     p_mt: int  # 유지 월
     SVC_USE_DAYS_GRP: Optional[str]  # 서비스 사용 일수 그룹
     MEDIA_NM_GRP: Optional[str]  # 미디어 그룹
