@@ -1,0 +1,93 @@
+
+.flex-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: 20px; 
+    margin: 0 auto; 
+    padding: 10px; 
+    max-width: 1200px; 
+  }
+  
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    width: 100%;
+    max-width: 1200px; 
+    margin: 0 auto; 
+    box-sizing: border-box; 
+    display:flex;
+    flex-wrap : wrap; 
+
+  }
+  
+
+.chart-wrap {
+    position: relative;
+    overflow: hidden;
+    margin-top: 30px;
+   
+}
+
+@media (min-width: 800px) {
+    .card-grid {
+        max-width: 100%;
+        box-sizing: border-box; 
+    }
+}
+
+.card-content {
+    position: relative;
+    height: 100%;
+}
+
+.card-statistics-icon {
+    position: absolute;
+    right: 10px;
+    top: 0;
+    width: 42px; 
+    height: 42px;
+    display: flex;
+    -moz-box-align: center;
+    align-items: center;
+    -moz-box-pack: center;
+    justify-content: center;
+    border-radius: 12px;
+    color: #fff;
+    background-color: var(--amplify-colors-brand-primary-60);
+    /*background-color: #406abf;*/
+    font-size: 22px;
+}
+.card-title {
+    font-size: 16px;
+    font-weight: bold;
+}
+.card-statistics-amount {
+    font-size: 30px;
+}
+
+.traffic-sources-card {
+    flex: 1 1 80%; 
+    height: 350px; 
+    border-radius: 12px;
+    background-color: #ffffff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+
+.mini-statistics-card {
+    flex: 1 1 20%; 
+    height: 150px; 
+    border-radius: 12px;
+    background-color: #ffffff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); 
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
