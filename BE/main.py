@@ -6,11 +6,15 @@ from models import CustomerSummary, TpsCancel
 from schemas import CustomerSummaryRead, TpsCancelRead
 from typing import List, Optional
 from fastapi.responses import JSONResponse
+from sqlalchemy import func
 
 # ✅ 예측 API는 별도 라우터에서 관리 (고객 조회창과 분리)
 from prediction import router as prediction_router
 
 app = FastAPI()
+
+# 📌 예측 API 포함
+app.include_router(prediction_router, prefix="/predict", tags=["Churn Prediction"])
 
 # CORS 설정
 app.add_middleware(
@@ -26,24 +30,32 @@ app.add_middleware(
 @app.get("/dashboard")
 def get_dashboard_data(db: Session = Depends(get_db)):
     """
-    CRM 대시보드 데이터를 제공하는 API
+    CRM 대시보드 데이터를 빠르게 제공하는 API
     """
-    # 🔹 총 고객 수
-    total_customers = db.query(CustomerSummary).count()
 
-    # 🔹 해지 고객 수
-    churn_customers = db.query(CustomerSummary).filter(CustomerSummary.churn == "Y").count()
-
-    # 🔹 신규 고객 수 (계약 종료일 기준 최신 데이터 필터링)
-    latest_month = db.query(CustomerSummary.AGMT_END_YMD).order_by(CustomerSummary.AGMT_END_YMD.desc()).first()
-    new_customers = db.query(CustomerSummary).filter(CustomerSummary.AGMT_END_YMD == latest_month).count()
-
-    # 🔹 월별 해지율 추이
-    monthly_churn_data = (
+    # 🔹 총 고객 수, 해지 고객 수, 신규 고객 수 한 번의 쿼리로 가져오기
+    results = (
         db.query(
-            TpsCancel.p_mt,
-            db.func.count(TpsCancel.sha2_hash).label("churn_count")
-        )
+            func.count(CustomerSummary.sha2_hash).label("total_customers"),
+            func.count(func.nullif(CustomerSummary.churn, "N")).label("churn_customers"),
+            func.max(CustomerSummary.AGMT_END_YMD).label("latest_month")
+        ).first()
+    )
+
+    total_customers = results.total_customers
+    churn_customers = results.churn_customers
+    latest_month = results.latest_month
+
+    # 🔹 신규 고객 수
+    new_customers = (
+        db.query(func.count(CustomerSummary.sha2_hash))
+        .filter(CustomerSummary.AGMT_END_YMD == latest_month)
+        .scalar()
+    )
+
+    # 🔹 월별 해지율 추이 (배치 로드 후 dict 변환)
+    monthly_churn_data = (
+        db.query(TpsCancel.p_mt, func.count(TpsCancel.sha2_hash).label("churn_count"))
         .filter(TpsCancel.churn == "Y")
         .group_by(TpsCancel.p_mt)
         .order_by(TpsCancel.p_mt)
@@ -51,13 +63,19 @@ def get_dashboard_data(db: Session = Depends(get_db)):
     )
     monthly_churn = {str(row.p_mt): row.churn_count for row in monthly_churn_data}
 
-    # 🔹 해지 고객 분류
+    # 🔹 해지 고객 분류 (배치 로드 후 Python에서 처리)
+    churn_category_counts = (
+        db.query(TpsCancel.CH_25_RATIO_1MONTH)
+        .filter(TpsCancel.CH_25_RATIO_1MONTH.isnot(None))  # None 값 제외
+        .all()
+    )
+
     churn_categories = {
-        "매우 위험": db.query(TpsCancel).filter(TpsCancel.CH_25_RATIO_1MONTH >= 0.8).count(),
-        "위험": db.query(TpsCancel).filter(TpsCancel.CH_25_RATIO_1MONTH.between(0.6, 0.79)).count(),
-        "주의": db.query(TpsCancel).filter(TpsCancel.CH_25_RATIO_1MONTH.between(0.4, 0.59)).count(),
-        "양호": db.query(TpsCancel).filter(TpsCancel.CH_25_RATIO_1MONTH.between(0.2, 0.39)).count(),
-        "안정": db.query(TpsCancel).filter(TpsCancel.CH_25_RATIO_1MONTH < 0.2).count()
+        "매우 위험": sum(1 for row in churn_category_counts if row.CH_25_RATIO_1MONTH >= 0.8),
+        "위험": sum(1 for row in churn_category_counts if 0.6 <= row.CH_25_RATIO_1MONTH < 0.8),
+        "주의": sum(1 for row in churn_category_counts if 0.4 <= row.CH_25_RATIO_1MONTH < 0.6),
+        "양호": sum(1 for row in churn_category_counts if 0.2 <= row.CH_25_RATIO_1MONTH < 0.4),
+        "안정": sum(1 for row in churn_category_counts if row.CH_25_RATIO_1MONTH < 0.2),
     }
 
     return {
@@ -67,7 +85,6 @@ def get_dashboard_data(db: Session = Depends(get_db)):
         "monthly_churn": monthly_churn,
         "churn_categories": churn_categories
     }
-
 
 # 📌 2. 고객 조회창 (/customers-summary)
 @app.get("/customers-summary", response_model=List[CustomerSummaryRead])
@@ -136,52 +153,14 @@ def get_customer_details(customer_id: str, db: Session = Depends(get_db)):
     tps_cancel_data = (
         db.query(TpsCancel)
         .filter(TpsCancel.sha2_hash == customer_id)
-        .order_by(TpsCancel.p_mt.asc())  # 🔥 p_mt 기준 정렬
+        .order_by(TpsCancel.p_mt.asc())  
         .all()
     )
 
     if not tps_cancel_data:
         raise HTTPException(status_code=404, detail="Customer data not found")
 
-    # 🔹 고객 ID(sha2_hash) 제거하고 반환
-    cancel_details = [{
-        "p_mt": row.p_mt,
-        "SVC_USE_DAYS_GRP": row.SVC_USE_DAYS_GRP,
-        "MEDIA_NM_GRP": row.MEDIA_NM_GRP,
-        "PROD_NM_GRP": row.PROD_NM_GRP,
-        "PROD_OLD_YN": row.PROD_OLD_YN,
-        "PROD_ONE_PLUS_YN": row.PROD_ONE_PLUS_YN,
-        "AGMT_KIND_NM": row.AGMT_KIND_NM,
-        "STB_RES_1M_YN": row.STB_RES_1M_YN,
-        "SVOD_SCRB_CNT_GRP": row.SVOD_SCRB_CNT_GRP,
-        "PAID_CHNL_CNT_GRP": row.PAID_CHNL_CNT_GRP,
-        "SCRB_PATH_NM_GRP": row.SCRB_PATH_NM_GRP,
-        "INHOME_RATE": row.INHOME_RATE,
-        "AGMT_END_SEG": row.AGMT_END_SEG,
-        "AGMT_END_YMD": row.AGMT_END_YMD,
-        "TOTAL_USED_DAYS": row.TOTAL_USED_DAYS,
-        "BUNDLE_YN": row.BUNDLE_YN,
-        "DIGITAL_GIGA_YN": row.DIGITAL_GIGA_YN,
-        "DIGITAL_ALOG_YN": row.DIGITAL_ALOG_YN,
-        "TV_I_CNT": row.TV_I_CNT,
-        "CH_LAST_DAYS_BF_GRP": row.CH_LAST_DAYS_BF_GRP,
-        "VOC_TOTAL_MONTH1_YN": row.VOC_TOTAL_MONTH1_YN,
-        "VOC_STOP_CANCEL_MONTH1_YN": row.VOC_STOP_CANCEL_MONTH1_YN,
-        "AGE_GRP10": row.AGE_GRP10,
-        "EMAIL_RECV_CLS_NM": row.EMAIL_RECV_CLS_NM,
-        "SMS_SEND_CLS_NM": row.SMS_SEND_CLS_NM,
-        "CH_HH_AVG_MONTH1": row.CH_HH_AVG_MONTH1,
-        "CH_FAV_RNK1": row.CH_FAV_RNK1,
-        "KIDS_USE_PV_MONTH1": row.KIDS_USE_PV_MONTH1,
-        "NFX_USE_YN": row.NFX_USE_YN,
-        "YTB_USE_YN": row.YTB_USE_YN,
-        "churn": row.churn,
-        "CH_25_RATIO_1MONTH": row.CH_25_RATIO_1MONTH,
-        "KIDS_USE_YN": row.KIDS_USE_YN
-    } for row in tps_cancel_data]
-
-    return cancel_details
-
+    return tps_cancel_data
 
 # 📌 4. 마케팅 추천 시스템 (/marketing-recommendations/{customer_id})
 @app.get("/marketing-recommendations/{customer_id}")

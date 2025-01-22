@@ -1,5 +1,7 @@
-from sqlalchemy import Column, String, Integer, Float, Text, Date, BigInteger
+from sqlalchemy import Column, String, Integer, Float, Text, Date, BigInteger, ForeignKey
+from sqlalchemy.orm import relationship
 from database import Base
+from datetime import date
 
 class TpsCancel(Base):
     __tablename__ = "tps_cancel_total"
@@ -78,3 +80,15 @@ class TpsCancelModels(Base):
     MEDIA_NM_GRP = Column(Text)  # 미디어 그룹
     VOC_TOTAL_MONTH1_YN = Column(Text)  # VOC 총 1개월 여부 (Y/N)
     churn = Column(Text)  # 해지 여부 (Y/N)
+
+class CustomerChurnPrediction(Base):
+    __tablename__ = "customer_churn_prediction"
+
+    sha2_hash = Column(String(64), ForeignKey("tps_cancel_models.sha2_hash"), primary_key=True)  # 고객 ID
+    p_mt = Column(Integer, primary_key=True)  # 유지 월
+    churn_probability = Column(Float)  # 예측된 해지 확률
+    prediction = Column(Integer)  # 해지 여부 (0: 미해지, 1: 해지)
+    customer_category = Column(String(20))  # 해지 위험도 분류 ('매우 위험', '위험' 등)
+    prediction_date = Column(Date, default=date.today())  # 예측 수행 날짜
+
+    customer = relationship("TpsCancelModels", backref="churn_predictions")  # 관계 설정   
