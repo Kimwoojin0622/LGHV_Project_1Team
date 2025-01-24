@@ -75,13 +75,11 @@ def predict_individual_impact(
     """
     
     if sha2_hash and p_mt:
-        # 🔹 특정 고객 예측 (기존 로직 유지)
         customers = db.query(TpsCancelModels).filter(
             TpsCancelModels.sha2_hash == sha2_hash,
             TpsCancelModels.p_mt == p_mt
         ).all()
     else:
-        # 🔹 전체 고객 예측 (기존 예측 데이터가 없는 고객만)
         offset = 0
         total_processed = 0
 
@@ -94,7 +92,7 @@ def predict_individual_impact(
             ).offset(offset).limit(batch_size).all()
 
             if not customers:
-                break  # 예측할 고객이 없으면 종료
+                break
 
             print(f"🔹 신규 데이터 {offset}-{offset + batch_size} 처리 중...")
 
@@ -122,9 +120,18 @@ def predict_individual_impact(
                 churn_probability = round(float(probabilities[i][1]), 2)
                 customer_category = classify_customer_fine(churn_probability)
 
+                shap_values_raveled = np.ravel(shap_values.values[i])
+
+                # 🔹 SHAP 길이 맞추기
+                if len(shap_values_raveled) > len(FEATURES):
+                    shap_values_raveled = shap_values_raveled[:len(FEATURES)]
+                elif len(shap_values_raveled) < len(FEATURES):
+                    shap_values_raveled = np.pad(shap_values_raveled, (0, len(FEATURES) - len(shap_values_raveled)), 'constant')
+
+                # 🔹 SHAP 영향도 데이터프레임 생성
                 impact_df = pd.DataFrame({
                     "feature": FEATURES,
-                    "impact": np.ravel(shap_values.values[i])  # 🚀 해결: 1차원 배열로 변환
+                    "impact": shap_values_raveled
                 }).sort_values(by="impact", ascending=False).head(5)
 
                 top_features = impact_df["feature"].tolist()
@@ -151,18 +158,3 @@ def predict_individual_impact(
             print(f"✅ {total_processed}명의 고객 예측 완료")
 
         return {"message": "전체 고객 해지 확률 예측 완료", "total_processed": total_processed}
-
-    # 특정 고객 예측 결과 반환
-    return {
-        "sha2_hash": sha2_hash,
-        "p_mt": p_mt,
-        "churn_probability": churn_probability,
-        "customer_category": customer_category,
-        "feature_impact": {
-            "feature_1": top_features[0], "impact_value_1": top_impacts[0],
-            "feature_2": top_features[1], "impact_value_2": top_impacts[1],
-            "feature_3": top_features[2], "impact_value_3": top_impacts[2],
-            "feature_4": top_features[3], "impact_value_4": top_impacts[3],
-            "feature_5": top_features[4], "impact_value_5": top_impacts[4]
-        }
-    }
