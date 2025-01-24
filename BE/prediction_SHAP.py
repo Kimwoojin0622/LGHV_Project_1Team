@@ -2,11 +2,14 @@ import os
 import numpy as np
 import joblib
 import pandas as pd
+import time
 from datetime import date
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.dialects.mysql import insert
 from database import get_db
-from models import TpsCancelModels, CustomerChurnPrediction, CustomerFeatureImpact
+from models import TpsCancelModels, CustomerFeatureImpact
 from sklearn.preprocessing import LabelEncoder
 import shap
 
@@ -70,10 +73,10 @@ def predict_individual_impact(
 ):
     """
     특정 고객 또는 전체 고객의 해지 확률을 예측하고, 상위 5개 피처의 영향을 저장합니다.
-    - `sha2_hash`, `p_mt`가 제공되면 해당 고객만 예측
-    - 둘 다 `None`이면 전체 고객을 배치 단위로 예측
     """
-    
+    MAX_RETRIES = 5
+    BATCH_SIZE = 500  # 💡 500개 단위로 나눠서 저장
+
     if sha2_hash and p_mt:
         customers = db.query(TpsCancelModels).filter(
             TpsCancelModels.sha2_hash == sha2_hash,
@@ -122,13 +125,11 @@ def predict_individual_impact(
 
                 shap_values_raveled = np.ravel(shap_values.values[i])
 
-                # 🔹 SHAP 길이 맞추기
                 if len(shap_values_raveled) > len(FEATURES):
                     shap_values_raveled = shap_values_raveled[:len(FEATURES)]
                 elif len(shap_values_raveled) < len(FEATURES):
                     shap_values_raveled = np.pad(shap_values_raveled, (0, len(FEATURES) - len(shap_values_raveled)), 'constant')
 
-                # 🔹 SHAP 영향도 데이터프레임 생성
                 impact_df = pd.DataFrame({
                     "feature": FEATURES,
                     "impact": shap_values_raveled
@@ -149,8 +150,32 @@ def predict_individual_impact(
                 )
                 impact_entries.append(impact_entry)
 
-            db.bulk_save_objects(impact_entries)
-            db.commit()
+            for i in range(0, len(impact_entries), BATCH_SIZE):
+                batch = impact_entries[i : i + BATCH_SIZE]
+                
+                retries = 0
+                while retries < MAX_RETRIES:
+                    try:
+                        for entry in batch:
+                            entry_data = {key: value for key, value in vars(entry).items() if key != "_sa_instance_state"}
+                            stmt = insert(CustomerFeatureImpact).values(**entry_data).on_duplicate_key_update(
+                                feature_1=entry.feature_1, impact_value_1=entry.impact_value_1,
+                                feature_2=entry.feature_2, impact_value_2=entry.impact_value_2,
+                                feature_3=entry.feature_3, impact_value_3=entry.impact_value_3,
+                                feature_4=entry.feature_4, impact_value_4=entry.impact_value_4,
+                                feature_5=entry.feature_5, impact_value_5=entry.impact_value_5,
+                                prediction_date=entry.prediction_date
+                            )
+                            db.execute(stmt)
+                        
+                        db.commit()
+                        break
+                    except OperationalError as e:
+                        if "Deadlock" in str(e):
+                            retries += 1
+                            time.sleep(2 ** retries)
+                        else:
+                            raise e
 
             total_processed += len(customers)
             offset += batch_size
