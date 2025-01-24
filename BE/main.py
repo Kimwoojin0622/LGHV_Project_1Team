@@ -32,10 +32,10 @@ app.add_middleware(
 @app.get("/dashboard")
 def get_dashboard_data(db: Session = Depends(get_db)):
     """
-    CRM 대시보드 데이터를 빠르게 제공하는 API
+    📌 CRM 대시보드 데이터를 제공하는 API
     """
 
-    # 🔹 총 고객 수, 해지 고객 수, 신규 고객 수 한 번의 쿼리로 가져오기
+    # 🔹 1️⃣ 총 고객 수, 해지 고객 수, 신규 고객 수 가져오기
     results = (
         db.query(
             func.count(CustomerSummary.sha2_hash).label("total_customers"),
@@ -48,14 +48,24 @@ def get_dashboard_data(db: Session = Depends(get_db)):
     churn_customers = results.churn_customers
     latest_month = results.latest_month
 
-    # 🔹 신규 고객 수
+    # 🔹 2️⃣ 신규 고객 수
     new_customers = (
         db.query(func.count(CustomerSummary.sha2_hash))
         .filter(CustomerSummary.AGMT_END_YMD == latest_month)
         .scalar()
     )
 
-    # 🔹 월별 해지율 추이 (배치 로드 후 dict 변환)
+    # 🔹 3️⃣ 전월 대비 고객 증감 계산
+    previous_month = db.query(func.max(CustomerSummary.AGMT_END_YMD)).filter(CustomerSummary.AGMT_END_YMD < latest_month).scalar()
+    prev_total_customers = (
+        db.query(func.count(CustomerSummary.sha2_hash))
+        .filter(CustomerSummary.AGMT_END_YMD == previous_month)
+        .scalar()
+    )
+
+    customer_change = total_customers - prev_total_customers if prev_total_customers else total_customers
+
+    # 🔹 4️⃣ 월별 해지율 추이 (배치 로드 후 dict 변환)
     monthly_churn_data = (
         db.query(TpsCancel.p_mt, func.count(TpsCancel.sha2_hash).label("churn_count"))
         .filter(TpsCancel.churn == "Y")
@@ -63,9 +73,9 @@ def get_dashboard_data(db: Session = Depends(get_db)):
         .order_by(TpsCancel.p_mt)
         .all()
     )
-    monthly_churn = {str(row.p_mt): row.churn_count for row in monthly_churn_data}
+    monthly_churn_trend = {str(row.p_mt): row.churn_count for row in monthly_churn_data}
 
-    # 🔹 해지 고객 분류 (배치 로드 후 Python에서 처리)
+    # 🔹 5️⃣ 해지 고객 분류 (해지율 기준)
     churn_category_counts = (
         db.query(TpsCancel.CH_25_RATIO_1MONTH)
         .filter(TpsCancel.CH_25_RATIO_1MONTH.isnot(None))  # None 값 제외
@@ -80,13 +90,25 @@ def get_dashboard_data(db: Session = Depends(get_db)):
         "안정": sum(1 for row in churn_category_counts if row.CH_25_RATIO_1MONTH < 0.2),
     }
 
+    # 🔹 6️⃣ 해지 고객 수 변화 (전월 대비 해지 고객 변화량 계산)
+    prev_churn_customers = (
+        db.query(func.count(TpsCancel.sha2_hash))
+        .filter(TpsCancel.p_mt == previous_month, TpsCancel.churn == "Y")
+        .scalar()
+    )
+
+    churn_change = churn_customers - prev_churn_customers if prev_churn_customers else churn_customers
+
     return {
-        "total_customers": total_customers,
-        "churn_customers": churn_customers,
-        "new_customers": new_customers,
-        "monthly_churn": monthly_churn,
-        "churn_categories": churn_categories
+        "total_customers": total_customers,         # 📌 총 고객 수
+        "churn_customers": churn_customers,         # 📌 해지 고객 수
+        "customer_change": customer_change,         # 📌 전월 대비 증감
+        "monthly_churn_trend": monthly_churn_trend, # 📌 월별 해지율 추이
+        "churn_categories": churn_categories,       # 📌 해지 고객 분류
+        "churn_change": churn_change,               # 📌 해지 고객 수 변화
+        "new_customers": new_customers              # 📌 신규 고객 수
     }
+
 
 # 📌 2. 고객 조회창 (/customers-summary)
 @app.get("/customers-summary", response_model=List[dict])
