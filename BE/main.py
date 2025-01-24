@@ -2,19 +2,21 @@ from fastapi import FastAPI, Depends, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from database import get_db
-from models import CustomerSummary, TpsCancel
-from schemas import CustomerSummaryRead, TpsCancelRead
+from models import CustomerSummary, TpsCancel, CustomerChurnPrediction, TpsCancelModels, CustomerFeatureImpact
+from schemas import CustomerSummaryRead, TpsCancelRead, CustomerChurnPredictionRead, CustomerFeatureImpactRead, TpsCancelModelsRead
 from typing import List, Optional
 from fastapi.responses import JSONResponse
 from sqlalchemy import func
 
 # ✅ 예측 API는 별도 라우터에서 관리 (고객 조회창과 분리)
 from prediction import router as prediction_router
+from prediction_SHAP import router as shap_router  # 📌 SHAP 라우터 추가
 
 app = FastAPI()
 
 # 📌 예측 API 포함
 app.include_router(prediction_router, prefix="/predict", tags=["Churn Prediction"])
+app.include_router(shap_router, prefix="/shap", tags=["SHAP Analysis"])  # 📌 SHAP API 포함
 
 # CORS 설정
 app.add_middleware(
@@ -87,51 +89,50 @@ def get_dashboard_data(db: Session = Depends(get_db)):
     }
 
 # 📌 2. 고객 조회창 (/customers-summary)
-@app.get("/customers-summary", response_model=List[CustomerSummaryRead])
+@app.get("/customers-summary", response_model=List[dict])
 def get_customers_summary(
     offset: int = 0,
     limit: int = 20,
     search: Optional[str] = Query(None),
     p_mt_range: Optional[str] = Query(None),
     churn: Optional[str] = Query(None),
-    age_group: Optional[str] = Query(None),
-    media_group: Optional[str] = Query(None),
-    product_group: Optional[str] = Query(None),
-    agreement_type: Optional[str] = Query(None),
-    registration_path: Optional[str] = Query(None),
-    contract_end: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
     """
-    고객 요약 목록 반환 (현재 기준 데이터, 고객 ID 포함)
+    고객 요약 목록 반환 (고객 ID 포함) + 최신 해지율 데이터 추가
     """
     query = db.query(CustomerSummary)
 
-    # 필터링 적용
+    # 🔹 필터링 적용
     if search:
         query = query.filter(CustomerSummary.sha2_hash.contains(search))
     if p_mt_range:
         query = query.filter(CustomerSummary.p_mt_range == p_mt_range)
     if churn:
         query = query.filter(CustomerSummary.churn == churn)
-    if age_group:
-        query = query.filter(CustomerSummary.AGE_GRP10 == age_group)
-    if media_group:
-        query = query.filter(CustomerSummary.MEDIA_NM_GRP == media_group)
-    if product_group:
-        query = query.filter(CustomerSummary.PROD_NM_GRP == product_group)
-    if agreement_type:
-        query = query.filter(CustomerSummary.AGMT_KIND_NM == agreement_type)
-    if registration_path:
-        query = query.filter(CustomerSummary.SCRB_PATH_NM_GRP == registration_path)
-    if contract_end:
-        query = query.filter(CustomerSummary.AGMT_END_YMD == contract_end)
 
     total_count = db.query(CustomerSummary).count()
     results = query.offset(offset).limit(limit).all()
 
+    # 🔹 고객별 최신 해지율 정보 가져오기
+    customer_ids = [row.sha2_hash for row in results]
+
+    latest_churn_predictions = (
+        db.query(
+            CustomerChurnPrediction.sha2_hash,
+            func.max(CustomerChurnPrediction.p_mt).label("latest_p_mt"),
+            CustomerChurnPrediction.churn_probability,
+            CustomerChurnPrediction.customer_category
+        )
+        .filter(CustomerChurnPrediction.sha2_hash.in_(customer_ids))
+        .group_by(CustomerChurnPrediction.sha2_hash, CustomerChurnPrediction.churn_probability, CustomerChurnPrediction.customer_category)
+        .all()
+    )
+
+    churn_dict = {cp.sha2_hash: {"churn_probability": cp.churn_probability, "customer_category": cp.customer_category} for cp in latest_churn_predictions}
+
     response = JSONResponse(content=[{
-        "sha2_hash": row.sha2_hash,  
+        "sha2_hash": row.sha2_hash,
         "p_mt_range": row.p_mt_range,
         "churn": row.churn,
         "AGE_GRP10": row.AGE_GRP10,
@@ -139,52 +140,64 @@ def get_customers_summary(
         "PROD_NM_GRP": row.PROD_NM_GRP,
         "AGMT_KIND_NM": row.AGMT_KIND_NM,
         "SCRB_PATH_NM_GRP": row.SCRB_PATH_NM_GRP,
-        "AGMT_END_YMD": row.AGMT_END_YMD
+        "AGMT_END_YMD": row.AGMT_END_YMD,
+        "churn_probability": churn_dict.get(row.sha2_hash, {}).get("churn_probability", None),
+        "customer_category": churn_dict.get(row.sha2_hash, {}).get("customer_category", None)
     } for row in results])
+
     response.headers["x-total-count"] = str(total_count)
     return response
 
-# 📌 3. 고객 세부창 (/customer-details/{customer_id})
-@app.get("/customer-details/{customer_id}", response_model=List[TpsCancelRead])
-def get_customer_details(customer_id: str, db: Session = Depends(get_db)):
+# 📌 3. 고객 상세 정보 (/customers/{sha2_hash}
+@app.get("/customers/{sha2_hash}", response_model=List[dict])
+def get_customer_details(
+    sha2_hash: str,
+    db: Session = Depends(get_db)
+):
     """
-    특정 고객의 과거 기록을 p_mt 기준으로 정렬하여 반환 (고객 ID 제외)
+    특정 고객의 과거 및 현재 기록 반환 + 해지 확률 & 고객 분류 포함
     """
-    tps_cancel_data = (
-        db.query(TpsCancel)
-        .filter(TpsCancel.sha2_hash == customer_id)
-        .order_by(TpsCancel.p_mt.asc())  
+
+    customer_history = (
+        db.query(
+            TpsCancel.p_mt,
+            TpsCancel.MEDIA_NM_GRP,
+            TpsCancel.PROD_NM_GRP,
+            TpsCancel.AGMT_KIND_NM,
+            TpsCancel.AGMT_END_YMD,
+            TpsCancel.churn
+        )
+        .filter(TpsCancel.sha2_hash == sha2_hash)
+        .order_by(TpsCancel.p_mt.desc())
         .all()
     )
 
-    if not tps_cancel_data:
-        raise HTTPException(status_code=404, detail="Customer data not found")
+    if not customer_history:
+        raise HTTPException(status_code=404, detail="해당 고객 데이터를 찾을 수 없습니다.")
 
-    return tps_cancel_data
+    churn_prediction = (
+        db.query(
+            CustomerChurnPrediction.p_mt,
+            CustomerChurnPrediction.churn_probability,
+            CustomerChurnPrediction.customer_category
+        )
+        .filter(CustomerChurnPrediction.sha2_hash == sha2_hash)
+        .order_by(CustomerChurnPrediction.p_mt.desc())
+        .all()
+    )
 
-# 📌 4. 마케팅 추천 시스템 (/marketing-recommendations/{customer_id})
-@app.get("/marketing-recommendations/{customer_id}")
-def get_marketing_recommendations(customer_id: str, db: Session = Depends(get_db)):
-    """
-    특정 고객에게 맞춤형 마케팅 대안을 추천하는 API
-    """
-    customer = db.query(TpsCancel).filter(TpsCancel.sha2_hash == customer_id).first()
+    churn_dict = {cp.p_mt: {"churn_probability": cp.churn_probability, "customer_category": cp.customer_category} for cp in churn_prediction}
 
-    if not customer:
-        raise HTTPException(status_code=404, detail="Customer not found")
-
-    recommendations = []
-    probability = customer.CH_25_RATIO_1MONTH
-
-    if probability >= 0.8:
-        recommendations.append({"type": "요금 할인", "description": "재약정 할인 제공"})
-    if probability >= 0.6:
-        recommendations.append({"type": "혜택 제공", "description": "상품권 및 포인트 제공"})
-    if probability >= 0.6:
-        recommendations.append({"type": "맞춤형 상담", "description": "VIP 상담 서비스 제공"})
-
-    return {
-        "customer_id": customer_id,
-        "probability_1": probability,
-        "recommendations": recommendations
-    }
+    result = []
+    for row in customer_history:
+        result.append({
+            "p_mt": row.p_mt,
+            "MEDIA_NM_GRP": row.MEDIA_NM_GRP,
+            "PROD_NM_GRP": row.PROD_NM_GRP,
+            "AGMT_KIND_NM": row.AGMT_KIND_NM,
+            "AGMT_END_YMD": row.AGMT_END_YMD,
+            "churn": row.churn,
+            "churn_probability": churn_dict.get(row.p_mt, {}).get("churn_probability", None),
+            "customer_category": churn_dict.get(row.p_mt, {}).get("customer_category", None)
+        })
+    return result

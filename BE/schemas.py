@@ -1,7 +1,8 @@
 from pydantic import BaseModel
 from typing import Optional, List
+from datetime import date
 
-# CustomerSummary 관련 스키마
+# ✅ CustomerSummary 관련 스키마
 class CustomerSummaryRead(BaseModel):
     sha2_hash: str  # 고객 ID
     p_mt_range: Optional[str]  # 유지 월 범위
@@ -16,66 +17,96 @@ class CustomerSummaryRead(BaseModel):
     class Config:
         from_attributes = True  # SQLAlchemy 모델에서 자동 변환 허용
 
-# TpsCancel 관련 스키마
-class TpsCancelRead(BaseModel):
+# ✅ CustomerChurnPrediction 관련 스키마
+class CustomerChurnPredictionRead(BaseModel):
+    sha2_hash: str  # 고객 ID
     p_mt: int  # 유지 월
-    SVC_USE_DAYS_GRP: Optional[str]  # 서비스 사용 일수 그룹
-    MEDIA_NM_GRP: Optional[str]  # 미디어 그룹
-    PROD_NM_GRP: Optional[str]  # 상품 그룹
-    PROD_OLD_YN: Optional[str]  # 오래된 상품 여부 (Y/N)
-    PROD_ONE_PLUS_YN: Optional[str]  # 원 플러스 상품 여부 (Y/N)
-    AGMT_KIND_NM: Optional[str]  # 계약 유형
-    STB_RES_1M_YN: Optional[str]  # STB 결과 1개월 (Y/N)
-    SVOD_SCRB_CNT_GRP: Optional[str]  # SVOD 구독 수 그룹
-    PAID_CHNL_CNT_GRP: Optional[str]  # 유료 채널 수 그룹
-    SCRB_PATH_NM_GRP: Optional[str]  # 가입 경로 이름 그룹
-    INHOME_RATE: Optional[str]  # 내부 비율
-    AGMT_END_SEG: Optional[str]  # 계약 종료 구간
-    AGMT_END_YMD: Optional[str]  # 계약 종료 날짜
-    TOTAL_USED_DAYS: Optional[int]  # 총 사용 일수
-    BUNDLE_YN: Optional[str]  # 번들 여부 (Y/N)
-    DIGITAL_GIGA_YN: Optional[str]  # 디지털 기가 사용 여부 (Y/N)
-    DIGITAL_ALOG_YN: Optional[str]  # 디지털 ALOG 사용 여부 (Y/N)
-    TV_I_CNT: Optional[float]  # TV 채널 수
-    CH_LAST_DAYS_BF_GRP: Optional[str]  # 마지막 사용일 그룹
-    VOC_TOTAL_MONTH1_YN: Optional[str]  # VOC 총 1개월 여부 (Y/N)
-    VOC_STOP_CANCEL_MONTH1_YN: Optional[str]  # VOC 중단/해지 여부 (Y/N)
-    AGE_GRP10: Optional[str]  # 연령대 그룹
-    EMAIL_RECV_CLS_NM: Optional[str]  # 이메일 수신 클래스 이름
-    SMS_SEND_CLS_NM: Optional[str]  # SMS 발송 클래스 이름
-    CH_HH_AVG_MONTH1: Optional[float]  # 월별 평균 시청 시간
-    CH_FAV_RNK1: Optional[str]  # 가장 선호하는 채널 순위
-    KIDS_USE_PV_MONTH1: Optional[float]  # 어린이 콘텐츠 이용 PV
-    NFX_USE_YN: Optional[str]  # 넷플릭스 사용 여부 (Y/N)
-    YTB_USE_YN: Optional[str]  # 유튜브 사용 여부 (Y/N)
-    churn: Optional[str]  # 해지 여부 (Y/N)
-    CH_25_RATIO_1MONTH: Optional[float]  # 해지 가능성 점수
-    KIDS_USE_YN: Optional[str]  # 어린이 콘텐츠 사용 여부 (Y/N)
+    churn_probability: float  # 해지 확률
+    customer_category: str  # 고객 분류 (위험, 주의, 안정 등)
+    prediction_date: date  # 예측 날짜
 
     class Config:
         from_attributes = True  # SQLAlchemy 모델에서 자동 변환 허용
 
-# tps_cancel_models 관련 스키마
+# ✅ TpsCancel 관련 스키마
+class TpsCancelRead(BaseModel):
+    p_mt: int  # 유지 월
+    SVC_USE_DAYS_GRP: Optional[str]
+    MEDIA_NM_GRP: Optional[str]
+    PROD_NM_GRP: Optional[str]
+    PROD_OLD_YN: Optional[str]
+    PROD_ONE_PLUS_YN: Optional[str]
+    AGMT_KIND_NM: Optional[str]
+    STB_RES_1M_YN: Optional[str]
+    SVOD_SCRB_CNT_GRP: Optional[str]
+    PAID_CHNL_CNT_GRP: Optional[str]
+    SCRB_PATH_NM_GRP: Optional[str]
+    INHOME_RATE: Optional[str]
+    AGMT_END_SEG: Optional[str]
+    AGMT_END_YMD: Optional[str]
+    TOTAL_USED_DAYS: Optional[int]
+    BUNDLE_YN: Optional[str]
+    DIGITAL_GIGA_YN: Optional[str]
+    DIGITAL_ALOG_YN: Optional[str]
+    TV_I_CNT: Optional[float]
+    CH_LAST_DAYS_BF_GRP: Optional[str]
+    VOC_TOTAL_MONTH1_YN: Optional[str]
+    VOC_STOP_CANCEL_MONTH1_YN: Optional[str]
+    AGE_GRP10: Optional[str]
+    EMAIL_RECV_CLS_NM: Optional[str]
+    SMS_SEND_CLS_NM: Optional[str]
+    CH_HH_AVG_MONTH1: Optional[float]
+    CH_FAV_RNK1: Optional[str]
+    KIDS_USE_PV_MONTH1: Optional[float]
+    NFX_USE_YN: Optional[str]
+    YTB_USE_YN: Optional[str]
+    churn: Optional[str]
+    CH_25_RATIO_1MONTH: Optional[float]
+    KIDS_USE_YN: Optional[str]
+
+    class Config:
+        from_attributes = True
+
+# ✅ tps_cancel_models 관련 스키마
 class TpsCancelModelsRead(BaseModel):
     sha2_hash: str  # 고객 ID
     p_mt: int  # 유지 월
-    SCRB_PATH_NM_GRP: Optional[str]  # 가입 경로 이름 그룹
-    INHOME_RATE: Optional[float]  # 내부 비율
-    TOTAL_USED_DAYS: Optional[int]  # 총 사용 일수
-    CH_LAST_DAYS_BF_GRP: Optional[str]  # 마지막 사용일 그룹
-    STB_RES_1M_YN: Optional[str]  # STB 결과 1개월 (Y/N)
-    AGMT_KIND_NM: Optional[str]  # 계약 유형
-    BUNDLE_YN: Optional[str]  # 번들 여부 (Y/N)
-    TV_I_CNT: Optional[float]  # TV 채널 수
-    AGMT_END_SEG: Optional[str]  # 계약 종료 구간
-    AGE_GRP10: Optional[str]  # 연령대 그룹
-    VOC_STOP_CANCEL_MONTH1_YN: Optional[str]  # VOC 중단/해지 여부 (Y/N)
-    CH_HH_AVG_MONTH1: Optional[float]  # 월별 평균 시청 시간
-    MONTHS_REMAINING: Optional[int]  # 남은 계약 개월 수
-    PROD_NM_GRP: Optional[str]  # 상품 그룹
-    MEDIA_NM_GRP: Optional[str]  # 미디어 그룹
-    VOC_TOTAL_MONTH1_YN: Optional[str]  # VOC 총 1개월 여부 (Y/N)
-    churn: Optional[str]  # 해지 여부 (Y/N)
+    SCRB_PATH_NM_GRP: Optional[str]
+    INHOME_RATE: Optional[float]
+    TOTAL_USED_DAYS: Optional[int]
+    CH_LAST_DAYS_BF_GRP: Optional[str]
+    STB_RES_1M_YN: Optional[str]
+    AGMT_KIND_NM: Optional[str]
+    BUNDLE_YN: Optional[str]
+    TV_I_CNT: Optional[float]
+    AGMT_END_SEG: Optional[str]
+    AGE_GRP10: Optional[str]
+    VOC_STOP_CANCEL_MONTH1_YN: Optional[str]
+    CH_HH_AVG_MONTH1: Optional[float]
+    MONTHS_REMAINING: Optional[int]
+    PROD_NM_GRP: Optional[str]
+    MEDIA_NM_GRP: Optional[str]
+    VOC_TOTAL_MONTH1_YN: Optional[str]
+    churn: Optional[str]
 
     class Config:
-        from_attributes = True  # SQLAlchemy 모델에서 자동 변환 허용
+        from_attributes = True
+
+# ✅ SHAP Feature Impact 관련 스키마
+class CustomerFeatureImpactRead(BaseModel):
+    sha2_hash: str
+    p_mt: int
+    feature_1: Optional[str]
+    impact_value_1: Optional[float]
+    feature_2: Optional[str]
+    impact_value_2: Optional[float]
+    feature_3: Optional[str]
+    impact_value_3: Optional[float]
+    feature_4: Optional[str]
+    impact_value_4: Optional[float]
+    feature_5: Optional[str]
+    impact_value_5: Optional[float]
+    prediction_date: date
+
+    class Config:
+        from_attributes = True
