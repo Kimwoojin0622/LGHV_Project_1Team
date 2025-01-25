@@ -3,11 +3,15 @@ import numpy as np
 import joblib
 import pandas as pd
 from datetime import date
+import time
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.dialects.mysql import insert
 from database import get_db
-from models import TpsCancelModels, CustomerChurnPrediction
+from models import TpsCancelModels, CustomerChurnPrediction, CustomerFeatureImpact
 from sklearn.preprocessing import LabelEncoder
+import shap
 
 router = APIRouter()
 
@@ -23,6 +27,10 @@ loaded_model = joblib.load(model_path)
 robust_scaler = joblib.load(robust_scaler_path)
 minmax_scaler = joblib.load(minmax_scaler_path)
 
+# 🔹 SHAP Explainer 로드
+explainer = shap.TreeExplainer(loaded_model)
+
+# 🔹 모델 학습 시 사용한 전체 피처 리스트 (`sha2_hash`, `p_mt` 제외)
 FEATURES = [feature for feature in loaded_model.feature_name_ if feature not in ["sha2_hash", "p_mt"]]
 
 # 🔹 해지 위험도 분류 함수
@@ -38,9 +46,13 @@ def classify_customer_fine(probability):
     else:
         return "안정"
 
+# 🔹 Label Encoders 저장소
 label_encoders = {}
 
 def encode_categorical_features(df):
+    """
+    문자열 데이터를 숫자로 변환 (Label Encoding 수행)
+    """
     for column in df.select_dtypes(include=["object"]).columns:
         if column not in label_encoders:
             label_encoders[column] = LabelEncoder()
@@ -55,6 +67,7 @@ def encode_categorical_features(df):
             df[column] = label_encoders[column].transform(df[column].astype(str))
     return df
 
+# 🔹 전체 고객 해지 예측 (Batch)
 @router.post("/predict/customers")
 def batch_predict_customers(
     sha2_hash: str = None, p_mt: int = None, batch_size: int = 1000, db: Session = Depends(get_db)
@@ -83,10 +96,10 @@ def batch_predict_customers(
                 break
 
             print(f"🔹 신규 데이터 {offset}-{offset + batch_size} 처리 중...")
-            
+
             df_modeling = pd.DataFrame([{key: value for key, value in vars(customer).items() if not key.startswith("_")} for customer in customers])
             df_ids = df_modeling[["sha2_hash", "p_mt"]]
-            
+
             df_modeling = df_modeling.drop(columns=["sha2_hash", "p_mt", "churn"], errors="ignore")
             df_modeling = encode_categorical_features(df_modeling)
             df_modeling = df_modeling.reindex(columns=FEATURES, fill_value=0)
@@ -119,7 +132,47 @@ def batch_predict_customers(
             offset += batch_size
 
             print(f"✅ 신규 고객 {total_processed}명의 해지 확률 예측 완료...")
-        
+
         return {"message": "신규 고객의 해지 확률 예측 완료", "total_processed": total_processed}
     
     return {"message": "특정 고객 예측 완료", "total_processed": len(customers)}
+
+# 🔹 개별 고객의 SHAP Feature Impact 분석
+@router.post("/predict/individual")
+def predict_individual_impact(
+    sha2_hash: str, p_mt: int, db: Session = Depends(get_db)
+):
+    """
+    특정 고객의 해지 확률 및 주요 영향 요인 예측
+    """
+    customer = db.query(TpsCancelModels).filter(
+        TpsCancelModels.sha2_hash == sha2_hash,
+        TpsCancelModels.p_mt == p_mt
+    ).first()
+
+    if not customer:
+        return {"error": "해당 고객을 찾을 수 없음"}
+
+    df_modeling = pd.DataFrame([{key: value for key, value in vars(customer).items() if not key.startswith("_")}])
+    df_modeling = encode_categorical_features(df_modeling)
+    df_modeling = df_modeling.reindex(columns=FEATURES, fill_value=0)
+
+    robust_columns = ["TOTAL_USED_DAYS", "CH_HH_AVG_MONTH1"]
+    minmax_columns = [col for col in FEATURES if col not in robust_columns]
+
+    df_modeling[robust_columns] = robust_scaler.transform(df_modeling[robust_columns])
+    df_modeling[minmax_columns] = minmax_scaler.transform(df_modeling[minmax_columns])
+
+    shap_values = explainer(df_modeling)
+    probabilities = loaded_model.predict_proba(df_modeling)
+
+    churn_probability = round(float(probabilities[0][1]), 2)
+    customer_category = classify_customer_fine(churn_probability)
+
+    return {
+        "sha2_hash": sha2_hash,
+        "p_mt": p_mt,
+        "churn_probability": churn_probability,
+        "customer_category": customer_category,
+        "feature_importance": shap_values.values[0].tolist()
+    }
