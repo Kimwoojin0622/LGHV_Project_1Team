@@ -47,13 +47,16 @@ class CustomerSummary(Base):
 
     sha2_hash = Column(String(64), primary_key=True)
     p_mt_range = Column(String(41))
-    churn = Column(Text)
+    churn = Column(String(1))
     AGE_GRP10 = Column(Text)
     MEDIA_NM_GRP = Column(Text)
     PROD_NM_GRP = Column(Text)
     AGMT_KIND_NM = Column(Text)
     SCRB_PATH_NM_GRP = Column(Text)
     AGMT_END_YMD = Column(Text)
+    churn_probability = Column(Float)
+    customer_category = Column(String(20))
+    prediction_date = Column(Date)
 
 class TpsCancelModels(Base):
     __tablename__ = "tps_cancel_models"
