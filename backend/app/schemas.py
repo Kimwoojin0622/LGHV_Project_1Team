@@ -63,6 +63,8 @@ class CustomerFeatureImpactRead(BaseModel):
     impact_value_4: Optional[float]
     feature_5: Optional[str]
     impact_value_5: Optional[float]
+    churn_probability: Optional[float]  # ✅ 해지 확률 추가
+    customer_category: Optional[str]  # ✅ 이탈 위험도 추가
     prediction_date: Optional[date]
 
     class Config:

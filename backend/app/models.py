@@ -45,27 +45,35 @@ class TpsCancelModels(Base):
     customer_category = Column(String(20), nullable=True)  # 이탈 위험도
 
 # ✅ 📌 SHAP Feature Impact 저장 모델 추가
+from sqlalchemy import Column, String, Integer, Float, Date, ForeignKey
+from sqlalchemy.orm import relationship
+from database import Base
+from datetime import date
+
 class CustomerFeatureImpact(Base):
     __tablename__ = "customer_feature_impact"
 
     sha2_hash = Column(String(64), ForeignKey("tps_cancel_models.sha2_hash"), primary_key=True)
     p_mt = Column(Integer, primary_key=True)
-    
-    feature_1 = Column(String(50))
+
+    feature_1 = Column(String(100))
     impact_value_1 = Column(Float)
-    
-    feature_2 = Column(String(50))
+
+    feature_2 = Column(String(100))
     impact_value_2 = Column(Float)
-    
-    feature_3 = Column(String(50))
+
+    feature_3 = Column(String(100))
     impact_value_3 = Column(Float)
-    
-    feature_4 = Column(String(50))
+
+    feature_4 = Column(String(100))
     impact_value_4 = Column(Float)
-    
-    feature_5 = Column(String(50))
+
+    feature_5 = Column(String(100))
     impact_value_5 = Column(Float)
-    
+
+    churn_probability = Column(Float, nullable=True)  # ✅ 해지 확률 추가
+    customer_category = Column(String(20), nullable=True)  # ✅ 이탈 위험도 추가
+
     prediction_date = Column(Date, default=date.today())
 
     customer = relationship("TpsCancelModels", backref="feature_impacts")

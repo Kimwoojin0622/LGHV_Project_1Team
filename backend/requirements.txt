@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+pymysql
+joblib
+numpy
+pandas
+shap
+scikit-learn
+apache-airflow==2.6.0
