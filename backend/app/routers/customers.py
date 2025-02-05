@@ -35,25 +35,28 @@ def get_customers_summary(
 
 
 # ✅ 특정 고객의 과거 이력 조회 API
-@router.get("/{sha2_hash}/history", response_model=List[TpsCancelModelsRead])
-def get_customer_history(
+@router.get("/{sha2_hash}/detailed-history", response_model=Optional[TpsCancelModelsRead])
+def get_customer_detailed_history(
     sha2_hash: str,
-    p_mt: Optional[int] = Query(None, description="특정 유지 월 데이터 조회"),
+    p_mt: Optional[int] = Query(None, description="특정 유지 월 필터링"),
     db: Session = Depends(get_db)
 ):
+    """
+    특정 유지 월(p_mt)의 고객 데이터를 반환하는 API
+    """
     query = db.query(TpsCancelModel).filter(TpsCancelModel.sha2_hash == sha2_hash)
-    
+
     if p_mt:
         query = query.filter(TpsCancelModel.p_mt == p_mt).limit(1)
     else:
-        query = query.order_by(TpsCancelModel.p_mt.desc())
+        query = query.order_by(TpsCancelModel.p_mt.desc()).limit(1)
 
-    history_records = query.all()
+    result = query.first()
+    if not result:
+        raise HTTPException(status_code=404, detail="해당 고객의 데이터가 없습니다.")
 
-    if not history_records:
-        raise HTTPException(status_code=404, detail="해당 고객의 과거 데이터가 없습니다.")
+    return result
 
-    return history_records
 
 # ✅ 특정 고객의 중요 피처 영향도 조회 API
 @router.get("/{sha2_hash}/feature-importance", response_model=List[CustomerFeatureImpactRead])
