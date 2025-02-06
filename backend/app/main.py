@@ -16,6 +16,6 @@ app.add_middleware(
 )
 
 # 라우터 포함
-app.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])
+# app.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])
 app.include_router(customers.router, prefix="/customers", tags=["Customers"])
-app.include_router(predict.router, prefix="/predict", tags=["Churn Prediction"])
+# app.include_router(predict.router, prefix="/predict", tags=["Churn Prediction"])

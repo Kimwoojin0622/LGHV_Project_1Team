@@ -7,11 +7,11 @@ from config import DB_URL
 # 1️⃣ 데이터베이스 엔진 생성
 engine = create_engine(
     DB_URL,
-    echo=False,           # SQL 실행 로깅 (필요하면 True로 변경)
-    pool_size=20,         # 최대 커넥션 수 (디폴트는 5, 성능 개선을 위해 증가)
-    max_overflow=10,      # 초과 허용 커넥션 수
-    pool_recycle=1800,    # 30분마다 커넥션 재활용
-    pool_pre_ping=True    # DB 연결 체크 (죽은 커넥션 자동 종료)
+    echo=False,
+    pool_size=50,         # 최대 연결 수 증가
+    max_overflow=20,      # 추가 커넥션 가능 개수 증가
+    pool_recycle=1800,    # 연결 재활용 시간 조정
+    pool_pre_ping=True
 )
 
 # 2️⃣ 세션 팩토리 생성
