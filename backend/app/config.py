@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 # 현재 파일(`config.py`)의 절대 경로 가져오기
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# 실행할 환경 변수 설정 (기본값: aws)
+# 실행할 환경 변수 설정 (기본값: local)
 ENV_MODE = os.getenv("ENV_MODE", "local")
 
 # 환경 변수 로드

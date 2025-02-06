@@ -88,3 +88,35 @@ class CustomerFeatureImpact(Base):
     __table_args__ = (
         Index("idx_sha2_hash_p_mt_pred_date", "sha2_hash", "p_mt", "prediction_date"),
     )
+
+class MonthlySummary(Base):
+    __tablename__ = "monthly_summary"
+    
+    p_mt = Column(Integer, primary_key=True, index=True)  # 유지 월 (PK)
+    total_customers = Column(Integer, nullable=False, index=True)  # 총 고객 수
+    churn_customers = Column(Integer, nullable=False, index=True)  # 해지 고객 수
+    new_customers = Column(Integer, nullable=False, index=True)  # 신규 고객 수
+    category_stable = Column(Integer, nullable=False, index=True)  # 안정 고객 수
+    category_normal = Column(Integer, nullable=False, index=True)  # 일반 고객 수
+    category_caution = Column(Integer, nullable=False, index=True)  # 주의 고객 수
+    category_risk = Column(Integer, nullable=False, index=True)  # 위험 고객 수
+    category_high_risk = Column(Integer, nullable=False, index=True)  # 매우 위험 고객 수
+
+class MonthlyChurnFactors(Base):
+    __tablename__ = "monthly_churn_factors"
+
+    p_mt = Column(Integer, primary_key=True, index=True)  # 유지 월 (PK)
+    feature_1 = Column(String(100), nullable=False)  # 1위 해지 요인
+    impact_score_1 = Column(Float, nullable=False)
+
+    feature_2 = Column(String(100), nullable=False)  # 2위 해지 요인
+    impact_score_2 = Column(Float, nullable=False)
+
+    feature_3 = Column(String(100), nullable=False)  # 3위 해지 요인
+    impact_score_3 = Column(Float, nullable=False)
+
+    feature_4 = Column(String(100), nullable=False)  # 4위 해지 요인
+    impact_score_4 = Column(Float, nullable=False)
+
+    feature_5 = Column(String(100), nullable=False)  # 5위 해지 요인
+    impact_score_5 = Column(Float, nullable=False)

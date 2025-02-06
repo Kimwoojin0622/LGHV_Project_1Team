@@ -65,3 +65,17 @@ class RiskAnalysisRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+class MonthlySummaryRead(BaseModel):
+    p_mt: int
+    total_customers: int
+    churn_customers: int
+    new_customers: int
+    category_stable: int
+    category_normal: int
+    category_caution: int
+    category_risk: int
+    category_high_risk: int
+    
+    class Config:
+        from_attributes = True
