@@ -52,3 +52,16 @@ class CustomerFeatureImpactRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+# ✅ 위험군 분석 API의 응답 스키마 정의
+class RiskAnalysisRead(BaseModel):
+    sha2_hash: str
+    p_mt: int
+    feature_1: Optional[str]
+    impact_value_1: Optional[float]
+    churn_probability: Optional[float]
+    customer_category: Optional[str]
+    prediction_date: Optional[date]
+
+    class Config:
+        from_attributes = True
