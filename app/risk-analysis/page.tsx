@@ -1,106 +1,139 @@
-"use client"
+"use client";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import RiskDistributionChart from "../components/RiskDistributionChart";
+import ChurnFactorsChart from "../components/ChurnFactorsChart";
+import RiskTrendChart from "../components/RiskTrendChart";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
-// 더미 데이터
-const riskFactors = [
-  { factor: "계약 만료 임박", score: 0.8 },
-  { factor: "최근 불만 접수", score: 0.7 },
-  { factor: "서비스 이용 감소", score: 0.6 },
-  { factor: "경쟁사 프로모션 참여", score: 0.5 },
-  { factor: "요금제 변경 요청", score: 0.4 },
-]
-
-const highRiskCustomers = [
-  { id: 1, name: "고객A", riskScore: 0.9, lastContact: "2023-06-15", nextAction: "긴급 연락" },
-  { id: 2, name: "고객B", riskScore: 0.85, lastContact: "2023-06-10", nextAction: "특별 할인 제안" },
-  { id: 3, name: "고객C", riskScore: 0.8, lastContact: "2023-06-05", nextAction: "서비스 개선 안내" },
-  { id: 4, name: "고객D", riskScore: 0.75, lastContact: "2023-06-01", nextAction: "만족도 조사" },
-  { id: 5, name: "고객E", riskScore: 0.7, lastContact: "2023-05-28", nextAction: "업그레이드 제안" },
-]
+const months = ["2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"];
 
 export default function RiskAnalysis() {
-  const [selectedCustomer, setSelectedCustomer] = useState(null)
+  const [selectedMonth, setSelectedMonth] = useState("2월");
+  const [riskStats, setRiskStats] = useState({ totalRiskCustomers: 0, veryHighRisk: 0 });
+  const [prevRiskStats, setPrevRiskStats] = useState({ totalRiskCustomers: 0, veryHighRisk: 0 });
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const currentMonth = parseInt(selectedMonth.replace("월", ""));
+        const prevMonth = currentMonth - 1;
+
+        // ✅ 두 개의 API를 동시에 요청하여 딜레이 방지
+        const [currentResponse, prevResponse] = await Promise.all([
+          axios.get(`${API_BASE_URL}/risk-summary/monthly-summary`, { params: { month: currentMonth } }),
+          prevMonth >= 2
+            ? axios.get(`${API_BASE_URL}/risk-summary/monthly-summary`, { params: { month: prevMonth } })
+            : Promise.resolve({ data: [] }) // 이전 달이 없으면 빈 값 반환
+        ]);
+
+        // ✅ 현재 월 데이터
+        const currentData = currentResponse.data.length > 0 ? {
+          totalRiskCustomers: currentResponse.data[0].category_risk + currentResponse.data[0].category_high_risk,
+          veryHighRisk: currentResponse.data[0].category_high_risk,
+        } : { totalRiskCustomers: 0, veryHighRisk: 0 };
+
+        // ✅ 이전 월 데이터 (없으면 기본값 0)
+        const prevData = prevResponse.data.length > 0 ? {
+          totalRiskCustomers: prevResponse.data[0].category_risk + prevResponse.data[0].category_high_risk,
+          veryHighRisk: prevResponse.data[0].category_high_risk,
+        } : { totalRiskCustomers: 0, veryHighRisk: 0 };
+
+        // ✅ 상태 업데이트를 한 번에 실행 (숫자 & 업다운 동시 반영)
+        setRiskStats(currentData);
+        setPrevRiskStats(prevData);
+
+      } catch (error) {
+        console.error("데이터 로드 실패:", error);
+      }
+    }
+
+    fetchData();
+  }, [selectedMonth]);
+
+  // 🔼🔽 증가/감소 상태 계산 함수 (딜레이 없이 동기적으로 업데이트됨)
+  const getTrendIcon = (current: number, previous: number) => {
+    if (current > previous) return <span className="text-red-500 ml-2">▲</span>; // 증가 (빨강)
+    if (current < previous) return <span className="text-blue-500 ml-2">▼</span>; // 감소 (파랑)
+    return null; // 변화 없음
+  };
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-[#53565A]">위험군 분석</h1>
-      <Card>
-        <CardHeader>
-          <CardTitle>위험군 분석 페이지</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-lg text-center">여기는 위험군 분석을 나타낼 페이지입니다.</p>
-        </CardContent>
-      </Card>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-[#53565A]">위험군 분석</h1>
+        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="월 선택" />
+          </SelectTrigger>
+          <SelectContent>
+            {months.map((month) => (
+              <SelectItem key={month} value={month}>{month}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-      {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* 🔹 총 위험군 고객 수 & 매우 위험 고객 수 (업다운 포함) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
-            <CardTitle>주요 위험 요인</CardTitle>
+            <CardTitle>총 위험군 고객 수</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={riskFactors}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="factor" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="score" fill="#A50034" />
-              </BarChart>
-            </ResponsiveContainer>
+            <p className="text-2xl font-bold flex items-center">
+              {riskStats.totalRiskCustomers.toLocaleString()}명
+              {getTrendIcon(riskStats.totalRiskCustomers, prevRiskStats.totalRiskCustomers)}
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>고위험 고객 목록</CardTitle>
+            <CardTitle>매우 위험 고객 수</CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>고객명</TableHead>
-                  <TableHead>위험 점수</TableHead>
-                  <TableHead>최근 접촉일</TableHead>
-                  <TableHead>다음 조치</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {highRiskCustomers.map((customer) => (
-                  <TableRow key={customer.id} onClick={() => setSelectedCustomer(customer)} className="cursor-pointer">
-                    <TableCell>{customer.name}</TableCell>
-                    <TableCell>{customer.riskScore.toFixed(2)}</TableCell>
-                    <TableCell>{customer.lastContact}</TableCell>
-                    <TableCell>{customer.nextAction}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <p className="text-2xl font-bold flex items-center">
+              {riskStats.veryHighRisk.toLocaleString()}명
+              {getTrendIcon(riskStats.veryHighRisk, prevRiskStats.veryHighRisk)}
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {selectedCustomer && (
+      {/* 🔹 위험도별 고객 분포 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>고객 상세 정보: {selectedCustomer.name}</CardTitle>
+            <CardTitle>위험도별 고객 분포</CardTitle>
           </CardHeader>
           <CardContent>
-            <p>위험 점수: {selectedCustomer.riskScore.toFixed(2)}</p>
-            <p>최근 접촉일: {selectedCustomer.lastContact}</p>
-            <p>다음 조치: {selectedCustomer.nextAction}</p>
-            <Button className="mt-4" onClick={() => alert("고객 관리 작업 시작")}>
-              고객 관리 시작
-            </Button>
+            <RiskDistributionChart month={selectedMonth} />
           </CardContent>
         </Card>
-      )} */}
-    </div>
-  )
-}
 
+        <Card>
+          <CardHeader>
+            <CardTitle>주요 해지 요인</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChurnFactorsChart month={selectedMonth} />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 🔹 위험군 변화 추이 추가 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>위험군 변화 추이</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RiskTrendChart />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

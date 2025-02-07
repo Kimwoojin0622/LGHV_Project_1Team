@@ -64,7 +64,7 @@ function CustomerProductSubscriptionContractCard({ customer, mainCustomer }: { c
 export default CustomerProductSubscriptionContractCard;
 
 export function CustomerDetailModal({ customer, isOpen, onClose }: CustomerDetailModalProps) {
-  const [selectedMonth, setSelectedMonth] = useState("12");
+  const [selectedMonth, setSelectedMonth] = useState("2");
   const [customerHistory, setCustomerHistory] = useState<CustomerHistory | null>(null);
   const [churnFactors, setChurnFactors] = useState<{ factor: string; impact: number }[]>([]);
   const [churnProbability, setChurnProbability] = useState(0);

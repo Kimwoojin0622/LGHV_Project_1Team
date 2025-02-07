@@ -1,45 +1,64 @@
-import { useMemo, useState, useEffect } from "react"
-import { monthlyData } from "../data/monthlyData"
-import axios from "axios"
-import { getLatestMonthData, getPreviousMonthData, calculateGrowthRate } from "../utils/dataUtils"
+"use client";
+import { useMemo, useEffect, useState } from "react";
+import axios from "axios";
 
-function calculateTrend(current?: number, previous?: number) {
-  if (!previous || !current || previous === 0) {
-    return { trend: undefined, percentage: "0.00" }
-  }
-  const diff = current - previous
-  return {
-    trend: diff > 0 ? "up" : diff < 0 ? "down" : undefined,
-    percentage: Math.abs((diff / previous) * 100).toFixed(2),
-  }
-}
-
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
 export const useMonthlyStats = () => {
-  const latestMonthData = useMemo(() => getLatestMonthData(monthlyData), [])
-  const previousMonthData = useMemo(() => getPreviousMonthData(monthlyData), [])
+  const [monthlyData, setMonthlyData] = useState<any | null>(null);
+  const [previousMonthData, setPreviousMonthData] = useState<any | null>(null);
 
-  
-  const stats = useMemo(
-    () => ({
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        // 최신 월 데이터 가져오기
+        const response = await axios.get(`${API_BASE_URL}/customers/monthly-summary/latest`);
+        setMonthlyData(response.data);
+
+        // 최신 데이터의 월 번호(p_mt)를 사용해 이전 월 데이터 가져오기 (월 번호가 2월보다 클 때만)
+        const currentMonth = response.data.p_mt;
+        if (currentMonth && currentMonth > 2) {
+          const prevResponse = await axios.get(`${API_BASE_URL}/customers/monthly-summary`, {
+            params: { month: currentMonth - 1 },
+          });
+          setPreviousMonthData(prevResponse.data);
+        } else {
+          setPreviousMonthData(null);
+        }
+      } catch (error) {
+        console.error("월별 데이터 로드 실패:", error);
+      }
+    }
+    fetchData();
+  }, []);
+
+  const stats = useMemo(() => {
+    if (!monthlyData) return null;
+
+    const prevTotal = previousMonthData?.total_customers || monthlyData.total_customers;
+    const prevChurn = previousMonthData?.churn_customers || monthlyData.churn_customers;
+    const prevNew = previousMonthData?.new_customers || monthlyData.new_customers;
+
+    return {
       total: {
-        value: latestMonthData.total,
-        formatted: latestMonthData.total.toLocaleString(),
+        value: monthlyData.total_customers,
+        formatted: monthlyData.total_customers.toLocaleString(),
+        trend: monthlyData.total_customers > prevTotal ? "up" : "down" as "up" | "down",
       },
       churn: {
-        value: latestMonthData.churn,
-        formatted: latestMonthData.churn.toLocaleString(),
-        percentage: latestMonthData.churn_rate.toFixed(2),
+        value: monthlyData.churn_customers,
+        formatted: monthlyData.churn_customers.toLocaleString(),
+        percentage: ((monthlyData.churn_customers / monthlyData.total_customers) * 100).toFixed(2),
+        trend: monthlyData.churn_customers > prevChurn ? "up" : "down" as "up" | "down",
       },
       new: {
-        value: latestMonthData.new,
-        formatted: latestMonthData.new.toLocaleString(),
-        percentage: ((latestMonthData.new / latestMonthData.total) * 100).toFixed(2),
+        value: monthlyData.new_customers,
+        formatted: monthlyData.new_customers.toLocaleString(),
+        percentage: ((monthlyData.new_customers / monthlyData.total_customers) * 100).toFixed(2),
+        trend: monthlyData.new_customers > prevNew ? "up" : "down" as "up" | "down",
       },
-    }),
-    [latestMonthData],
-  )
+    };
+  }, [monthlyData, previousMonthData]);
 
-  return { stats }
-}
-
+  return { stats };
+};

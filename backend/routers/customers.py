@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from database import get_db
-from models import TpsCancelModels as TpsCancelModel, CustomerSummary, CustomerFeatureImpact
-from schemas import TpsCancelModelsRead, CustomerSummaryRead, CustomerFeatureImpactRead
+from models import TpsCancelModels as TpsCancelModel, CustomerSummary, CustomerFeatureImpact, MonthlySummary
+from schemas import TpsCancelModelsRead, CustomerSummaryRead, CustomerFeatureImpactRead, MonthlySummaryRead
 
 router = APIRouter()
 
@@ -129,3 +129,15 @@ def get_customer_feature_importance(
         raise HTTPException(status_code=404, detail="해당 고객의 중요 피처 데이터가 없습니다.")
 
     return feature_impact_data
+
+# ✅ 최신 월별 요약 데이터 조회 API
+@router.get("/monthly-summary/latest", response_model=MonthlySummaryRead)
+def get_latest_monthly_summary(db: Session = Depends(get_db)):
+    latest_month = db.query(MonthlySummary.p_mt).order_by(MonthlySummary.p_mt.desc()).limit(1).scalar()
+
+    if not latest_month:
+        raise HTTPException(status_code=404, detail="월별 데이터가 존재하지 않습니다.")
+
+    result = db.query(MonthlySummary).filter(MonthlySummary.p_mt == latest_month).first()
+    
+    return result
