@@ -130,15 +130,14 @@ def get_customer_feature_importance(
 
     return feature_impact_data
 
-# ✅ 월별 유저요약 조회 API
-@router.get("/monthly-summary", response_model=MonthlySummaryRead)
-def get_monthly_summary(
-    month: int = Query(..., description="조회할 유지 월 (2~12)"),
-    db: Session = Depends(get_db)
-):
-    result = db.query(MonthlySummary).filter(MonthlySummary.p_mt == month).first()
-    
-    if not result:
-        raise HTTPException(status_code=404, detail="해당 월의 데이터가 없습니다.")
+# ✅ 최신 월별 요약 데이터 조회 API
+@router.get("/monthly-summary/latest", response_model=MonthlySummaryRead)
+def get_latest_monthly_summary(db: Session = Depends(get_db)):
+    latest_month = db.query(MonthlySummary.p_mt).order_by(MonthlySummary.p_mt.desc()).limit(1).scalar()
+
+    if not latest_month:
+        raise HTTPException(status_code=404, detail="월별 데이터가 존재하지 않습니다.")
+
+    result = db.query(MonthlySummary).filter(MonthlySummary.p_mt == latest_month).first()
     
     return result
