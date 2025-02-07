@@ -4,23 +4,22 @@ import axios from "axios";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
-export const useMonthlyStats = (selectedMonth: number) => {
+export const useMonthlyStats = () => {
   const [monthlyData, setMonthlyData] = useState<any | null>(null);
   const [previousMonthData, setPreviousMonthData] = useState<any | null>(null);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        // 현재 선택된 월 데이터
-        const response = await axios.get(`${API_BASE_URL}/customers/monthly-summary`, {
-          params: { month: selectedMonth },
-        });
+        // 최신 월 데이터 가져오기
+        const response = await axios.get(`${API_BASE_URL}/customers/monthly-summary/latest`);
         setMonthlyData(response.data);
 
-        // 이전 월 데이터
-        if (selectedMonth > 2) {
+        // 최신 데이터의 월 번호(p_mt)를 사용해 이전 월 데이터 가져오기 (월 번호가 2월보다 클 때만)
+        const currentMonth = response.data.p_mt;
+        if (currentMonth && currentMonth > 2) {
           const prevResponse = await axios.get(`${API_BASE_URL}/customers/monthly-summary`, {
-            params: { month: selectedMonth - 1 },
+            params: { month: currentMonth - 1 },
           });
           setPreviousMonthData(prevResponse.data);
         } else {
@@ -31,7 +30,7 @@ export const useMonthlyStats = (selectedMonth: number) => {
       }
     }
     fetchData();
-  }, [selectedMonth]);
+  }, []);
 
   const stats = useMemo(() => {
     if (!monthlyData) return null;
