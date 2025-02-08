@@ -18,7 +18,8 @@ export default function CustomerTable() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [riskFilter, setRiskFilter] = useState<Customer["customer_category"] | "이탈 위험도">("이탈 위험도");
-  const [ageGroupFilter, setAgeGroupFilter] = useState<string>("ALL");
+  const [scrbPathFilter, setScrbPathFilter] = useState<string>("ALL");
+  const [prodNmFilter, setProdNmFilter] = useState<string>("ALL");
   const [isFetching, setIsFetching] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -27,7 +28,7 @@ export default function CustomerTable() {
   const itemsPerPage = 20;
   const offsetRef = useRef(0);
 
-  // ✅ 고객 데이터 불러오기
+  // 고객 데이터 불러오기
   const fetchCustomers = useCallback(async () => {
     if (isFetching || !hasMore) return;
 
@@ -39,7 +40,8 @@ export default function CustomerTable() {
           limit: itemsPerPage,
           search: searchTerm.trim() !== "" ? searchTerm : undefined,
           customer_category: riskFilter !== "이탈 위험도" ? riskFilter : undefined,
-          age_group: ageGroupFilter !== "ALL" ? ageGroupFilter : undefined,
+          scrb_path: scrbPathFilter !== "ALL" ? scrbPathFilter : undefined,
+          prod_nm: prodNmFilter !== "ALL" ? prodNmFilter : undefined,
         },
       });
 
@@ -54,16 +56,17 @@ export default function CustomerTable() {
       toast.error("고객 데이터를 불러오는 데 실패했습니다.");
     }
     setIsFetching(false);
-  }, [searchTerm, riskFilter, ageGroupFilter, isFetching, hasMore]);
+  }, [searchTerm, riskFilter, scrbPathFilter, prodNmFilter, isFetching, hasMore]);
 
+  // 필터 변경 시 고객 데이터 초기화 후 새로 불러오기
   useEffect(() => {
     setCustomers([]);
     offsetRef.current = 0;
     setHasMore(true);
     fetchCustomers();
-  }, [searchTerm, riskFilter, ageGroupFilter]);
+  }, [searchTerm, riskFilter, scrbPathFilter, prodNmFilter]);
 
-  // ✅ 무한 스크롤 감지
+  // 무한 스크롤 감지
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -85,17 +88,19 @@ export default function CustomerTable() {
     };
   }, [fetchCustomers, hasMore]);
 
-  // ✅ SHA2 클릭 시 클립보드 복사 기능
+  // SHA2 클립보드 복사 기능
   const copyToClipboard = useCallback((event: React.MouseEvent, text: string) => {
     event.stopPropagation();
-    navigator.clipboard.writeText(text).then(() => {
-      toast.success("SHA2가 클립보드에 복사되었습니다.", { style: { whiteSpace: "nowrap" } });
-    }).catch(() => {
-      toast.error("복사에 실패했습니다.");
-    });
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        toast.success("SHA2가 클립보드에 복사되었습니다.", { style: { whiteSpace: "nowrap" } });
+      })
+      .catch(() => {
+        toast.error("복사에 실패했습니다.");
+      });
   }, []);
 
-  // ✅ 고객 클릭 시 모달 열기
+  // 고객 클릭 시 모달 열기
   const handleRowClick = (customer: Customer) => {
     setSelectedCustomer(customer);
     setIsModalOpen(true);
@@ -120,7 +125,9 @@ export default function CustomerTable() {
 
             {/* 이탈 위험도 필터 */}
             <Select value={riskFilter} onValueChange={(value) => setRiskFilter(value as Customer["customer_category"] | "이탈 위험도")}>
-              <SelectTrigger className="w-[180px]"><SelectValue placeholder="이탈 위험도 필터" /></SelectTrigger>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="이탈 위험도 필터" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="이탈 위험도">이탈 위험도</SelectItem>
                 <SelectItem value="매우 위험">매우 위험</SelectItem>
@@ -131,21 +138,39 @@ export default function CustomerTable() {
               </SelectContent>
             </Select>
 
-            {/* 연령대 필터 */}
-            <Select value={ageGroupFilter} onValueChange={(value) => setAgeGroupFilter(value)}>
-              <SelectTrigger className="w-[180px]"><SelectValue placeholder="연령대 필터" /></SelectTrigger>
+            {/* 상품 필터 */}
+            <Select value={prodNmFilter} onValueChange={(value) => setProdNmFilter(value)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="상품 필터" />
+              </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">연령대</SelectItem>
-                <SelectItem value="10대">10대</SelectItem>
-                <SelectItem value="20대">20대</SelectItem>
-                <SelectItem value="30대">30대</SelectItem>
-                <SelectItem value="40대">40대</SelectItem>
-                <SelectItem value="50대">50대</SelectItem>
-                <SelectItem value="60대">60대</SelectItem>
-                <SelectItem value="70대">70대</SelectItem>
-                <SelectItem value="80대">80대</SelectItem>
-                <SelectItem value="90대이상">90대이상</SelectItem>
-                <SelectItem value="연령없음">연령없음</SelectItem>
+                <SelectItem value="ALL">상품</SelectItem>
+                <SelectItem value="이코노미">이코노미</SelectItem>
+                <SelectItem value="프리미엄">프리미엄</SelectItem>
+                <SelectItem value="베이직">베이직</SelectItem>
+                <SelectItem value="스탠다드">스탠다드</SelectItem>
+                <SelectItem value="세이버">세이버</SelectItem>
+                <SelectItem value="기타">기타</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* 가입 경로 필터 */}
+            <Select value={scrbPathFilter} onValueChange={(value) => setScrbPathFilter(value)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="가입 경로 필터" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">가입 경로</SelectItem>
+                <SelectItem value="I/B">I/B</SelectItem>
+                <SelectItem value="일반상담">일반상담</SelectItem>
+                <SelectItem value="현장경로">현장경로</SelectItem>
+                <SelectItem value="O/B">O/B</SelectItem>
+                <SelectItem value="기타">기타</SelectItem>
+                <SelectItem value="임직원">임직원</SelectItem>
+                <SelectItem value="직영몰">직영몰</SelectItem>
+                <SelectItem value="정보없음">정보없음</SelectItem>
+                <SelectItem value="전략채널">전략채널</SelectItem>
+                <SelectItem value="렌탈제휴">렌탈제휴</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -154,7 +179,6 @@ export default function CustomerTable() {
             <TableHeader>
               <TableRow>
                 <TableHead>SHA2</TableHead>
-                <TableHead>연령대</TableHead>
                 <TableHead>미디어 그룹</TableHead>
                 <TableHead>상품</TableHead>
                 <TableHead>가입 경로</TableHead>
@@ -165,22 +189,27 @@ export default function CustomerTable() {
             </TableHeader>
             <TableBody>
               {customers.map((customer) => (
-                <TableRow key={customer.sha2_hash} onClick={() => handleRowClick(customer)} className="cursor-pointer hover:bg-gray-100">
+                <TableRow 
+                  key={customer.sha2_hash} 
+                  onClick={() => handleRowClick(customer)} 
+                  className="cursor-pointer hover:bg-gray-100"
+                >
+                  {/* SHA2 셀에 클립보드 복사 기능 추가 */}
                   <TableCell 
                     onClick={(e) => copyToClipboard(e, customer.sha2_hash)} 
                     className="cursor-pointer hover:underline"
                   >
                     {customer.sha2_hash.slice(0, 6)}...
                   </TableCell>
-                  <TableCell>{customer.AGE_GRP10}</TableCell>
                   <TableCell>{customer.MEDIA_NM_GRP}</TableCell>
                   <TableCell>{customer.PROD_NM_GRP}</TableCell>
                   <TableCell>{customer.SCRB_PATH_NM_GRP}</TableCell>
                   <TableCell>{customer.AGMT_END_YMD}</TableCell>
                   <TableCell>{(customer.churn_probability * 100).toFixed(2)}%</TableCell>
+                  {/* 이탈 위험도에 getRiskColor()로 동적 색상 적용 */}
                   <TableCell 
-                    className="font-bold text-center"
-                    style={{ color: getRiskColor(customer.customer_category) }} // ✅ 글자 색상만 변경
+                    className="font-bold text-center" 
+                    style={{ color: getRiskColor(customer.customer_category) }}
                   >
                     {customer.customer_category}
                   </TableCell>
@@ -188,10 +217,15 @@ export default function CustomerTable() {
               ))}
             </TableBody>
           </Table>
+          {/* 무한 스크롤을 위한 감시 요소 */}
           <div ref={observerRef} className="h-4"></div>
         </div>
       </CardContent>
-      <CustomerDetailModal customer={selectedCustomer} isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <CustomerDetailModal 
+        customer={selectedCustomer} 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+      />
     </Card>
   );
 }

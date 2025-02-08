@@ -15,6 +15,8 @@ def get_customers_summary(
     search: Optional[str] = None,
     customer_category: Optional[str] = None,
     age_group: Optional[str] = None,
+    prod_nm: Optional[str] = None,        # 상품 필터 추가
+    scrb_path: Optional[str] = None,      # 가입 경로 필터 추가
     db: Session = Depends(get_db),
 ):
     query = db.query(
@@ -31,14 +33,16 @@ def get_customers_summary(
     # 동적 필터 적용
     if search:
         query = query.filter(CustomerSummary.sha2_hash == search)
-    if age_group and age_group != "ALL":
-        query = query.filter(CustomerSummary.AGE_GRP10 == age_group)
     if customer_category and customer_category != "ALL":
         query = query.filter(CustomerSummary.customer_category == customer_category)
+    if prod_nm and prod_nm != "ALL":          # 상품 필터 조건 추가
+        query = query.filter(CustomerSummary.PROD_NM_GRP == prod_nm)
+    if scrb_path and scrb_path != "ALL":        # 가입 경로 필터 조건 추가
+        query = query.filter(CustomerSummary.SCRB_PATH_NM_GRP == scrb_path)
 
     results = query.offset(offset).limit(limit).all()
 
-    # ✅ 반환값을 Pydantic 모델 형태로 변환
+    # 반환값을 Pydantic 모델 형태로 변환
     return [
         CustomerSummaryRead(
             sha2_hash=r[0],
