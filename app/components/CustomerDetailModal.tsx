@@ -8,10 +8,26 @@ import { TrendingDown, AlertTriangle, User, FileSignature, Calendar } from "luci
 import { Customer, CustomerHistory, FeatureImportanceData, CustomerDetailModalProps } from "../types/customer";
 import { getRiskColor } from "../utils/colors";
 
+const featureTranslations: { [key: string]: string } = {
+  "TV_I_CNT": "TV 사용 댓수",
+  "AGMT_KIND_NM": "약정 종류",
+  "MEDIA_NM_GRP": "상품 매체명",
+  "PROD_NM_GRP": "상품명",
+  "CH_HH_AVG_MONTH1": "1개월 평균 채널 시청시간",
+  "BUNDLE_YN": "결합 상품 유무",
+  "VOC_STOP_CANCEL_MONTH1_YN": "최근 한 달 내 해지 상담 여부",
+  "VOC_TOTAL_MONTH1_YN": "최근 한 달 내 전체 상담 여부",
+  "MONTHS_REMAINING": "약정 남은 개월 수",
+  "STB_RES_1M_YN": "셋톱박스 휴면 유무",
+  "CH_LAST_DAYS_BF_GRP": "최근 시청일",
+  "INHOME_RATE": "집돌이 지수",
+  "AGE_GRP10": "연령대",
+  "AGMT_END_SEG": "약정 종료일"
+};
+
 function CustomerProductSubscriptionContractCard({ customer, mainCustomer }: { customer: CustomerHistory; mainCustomer: Customer }) {
   return (
     <div className="grid grid-cols-2 gap-4">
-      {/* 고객 정보 */}
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center space-x-2 text-[#ED174D] mb-2">
@@ -23,7 +39,6 @@ function CustomerProductSubscriptionContractCard({ customer, mainCustomer }: { c
         </CardContent>
       </Card>
 
-      {/* 사용 정보 */}
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center space-x-2 text-[#ED174D] mb-2">
@@ -35,7 +50,6 @@ function CustomerProductSubscriptionContractCard({ customer, mainCustomer }: { c
         </CardContent>
       </Card>
 
-      {/* 상담 정보 */}
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center space-x-2 text-[#ED174D] mb-2">
@@ -46,7 +60,6 @@ function CustomerProductSubscriptionContractCard({ customer, mainCustomer }: { c
         </CardContent>
       </Card>
 
-      {/* 약정 정보 */}
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center space-x-2 text-[#ED174D] mb-2">
@@ -86,13 +99,14 @@ export function CustomerDetailModal({ customer, isOpen, onClose }: CustomerDetai
       const featureData: FeatureImportanceData[] = featureRes.data;
       if (featureData.length > 0) {
         const record = featureData[0];
-        const factors = Object.keys(record)
-          .filter((key) => key.startsWith("feature_") && record[key])
-          .map((key) => ({
-            factor: record[key],
-            impact: (record[`impact_value_${key.split("_")[1]}`] || 0) * 100,
-          }));
-        setChurnFactors(factors);
+        setChurnFactors(
+          Object.keys(record)
+            .filter((key) => key.startsWith("feature_") && record[key])
+            .map((key) => ({
+              factor: featureTranslations[record[key]] || record[key], 
+              impact: (record[`impact_value_${key.split("_")[1]}`] || 0) * 100,
+            }))
+        );
         setChurnProbability((record.churn_probability || 0) * 100);
       }
     } catch (error) {
@@ -109,81 +123,41 @@ export function CustomerDetailModal({ customer, isOpen, onClose }: CustomerDetai
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
-  <DialogHeader>
-    <DialogTitle className="text-2xl font-bold text-[#ED174D]">고객 상세 정보</DialogTitle>
-      {/* 월별 필터를 고객 상세 정보 아래쪽으로 이동 */}
-  <div className="flex justify-end mt-4">
-    <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-      <SelectTrigger className="w-[120px]">
-        <SelectValue placeholder="월 선택" />
-      </SelectTrigger>
-      <SelectContent>
-        {Array.from({ length: 12 }, (_, i) => `${i + 1}`).filter((month) => month !=="1").map((month) => (
-          <SelectItem key={month} value={month}>
-            {month}월
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  </div>
-  </DialogHeader>
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold text-[#ED174D]">고객 상세 정보</DialogTitle>
+          <div className="flex justify-end mt-4">
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="w-[120px]">
+                <SelectValue placeholder="월 선택" />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 12 }, (_, i) => `${i + 1}`).map((month) => (
+                  <SelectItem key={month} value={month}>{month}월</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </DialogHeader>
 
-  <Card>
-    <CardContent className="p-6 flex justify-between items-start">
-      <div className="flex items-center gap-4">
-        <div className="w-16 h-16 bg-[#ED174D] text-white text-2xl flex items-center justify-center rounded-full">
-          {customer.sha2_hash.slice(0, 1).toUpperCase()}
-        </div>
-        <div>
-          <p className="text-lg font-semibold">SHA2: {customer.sha2_hash}</p>
-          <Badge style={{ backgroundColor: getRiskColor(customer.customer_category) }}>
-            이탈 위험도: {customer.customer_category}
-          </Badge>
-        </div>
-      </div>
-    </CardContent>
-  </Card>
+        <CustomerProductSubscriptionContractCard customer={customerHistory} mainCustomer={customer} />
 
-  {/* 고객 상세 정보 카드 */}
-  <CustomerProductSubscriptionContractCard customer={customerHistory} mainCustomer={customer} />
-
-  {/* 주요 해지 요인 */}
-  <Card>
-    <CardContent className="p-6">
-      <div className="flex items-center space-x-2 text-[#ED174D] mb-4">
-        <TrendingDown className="w-5 h-5" />
-        <span className="font-semibold text-lg">주요 해지 요인</span>
-      </div>
-      <ul className="space-y-2">
-        {churnFactors.map((factor, index) => (
-          <li key={index} className="flex justify-between">
-            <span className="text-sm">{factor.factor}</span>
-            <span className="text-sm font-medium">{factor.impact.toFixed(1)}%</span>
-          </li>
-        ))}
-      </ul>
-    </CardContent>
-  </Card>
-
-  {/* 해지 확률 */}
-  <Card>
-    <CardContent className="p-6">
-      <div className="flex items-center space-x-2 text-[#ED174D] mb-4">
-        <AlertTriangle className="w-5 h-5" />
-        <span className="font-semibold text-lg">해지 확률</span>
-      </div>
-      <div className="flex items-center gap-4">
-        <div className="w-full h-4 bg-gray-100 rounded-full relative">
-          <div className="h-full rounded-full transition-all duration-500" 
-               style={{ width: `${churnProbability}%`, backgroundColor: getRiskColor(customer.customer_category) }} />
-        </div>
-        <span className="text-lg font-semibold" style={{ color: getRiskColor(customer.customer_category) }}>
-          {churnProbability.toFixed(1)}%
-        </span>
-      </div>
-    </CardContent>
-  </Card>
-</DialogContent>
-</Dialog>
-);
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-2 text-[#ED174D] mb-4">
+              <TrendingDown className="w-5 h-5" />
+              <span className="font-semibold text-lg">주요 해지 요인</span>
+            </div>
+            <ul className="space-y-2">
+              {churnFactors.map((factor, index) => (
+                <li key={index} className="flex justify-between">
+                  <span className="text-sm">{factor.factor}</span>
+                  <span className="text-sm font-medium">{factor.impact.toFixed(1)}%</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      </DialogContent>
+    </Dialog>
+  );
 }
