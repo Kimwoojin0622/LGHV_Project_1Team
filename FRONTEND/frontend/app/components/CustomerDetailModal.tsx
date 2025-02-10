@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TrendingDown, AlertTriangle, User, FileSignature, Calendar } from "lucide-react";
 import { Customer, CustomerHistory, FeatureImportanceData, CustomerDetailModalProps } from "../types/customer";
 import { getRiskColor } from "../utils/colors";
+import ChurnFactorsChart from "../components/ChurnFactorsChart";
 
 const featureTranslations: { [key: string]: string } = {
   "TV_I_CNT": "TV 사용 댓수",
@@ -28,6 +29,7 @@ const featureTranslations: { [key: string]: string } = {
 function CustomerProductSubscriptionContractCard({ customer, mainCustomer }: { customer: CustomerHistory; mainCustomer: Customer }) {
   return (
     <div className="grid grid-cols-2 gap-4">
+      {/* 고객 정보 */}
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center space-x-2 text-[#ED174D] mb-2">
@@ -39,6 +41,7 @@ function CustomerProductSubscriptionContractCard({ customer, mainCustomer }: { c
         </CardContent>
       </Card>
 
+      {/* 사용 정보 */}
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center space-x-2 text-[#ED174D] mb-2">
@@ -50,6 +53,7 @@ function CustomerProductSubscriptionContractCard({ customer, mainCustomer }: { c
         </CardContent>
       </Card>
 
+      {/* 상담 정보 */}
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center space-x-2 text-[#ED174D] mb-2">
@@ -60,6 +64,7 @@ function CustomerProductSubscriptionContractCard({ customer, mainCustomer }: { c
         </CardContent>
       </Card>
 
+      {/* 약정 정보 */}
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center space-x-2 text-[#ED174D] mb-2">
@@ -74,41 +79,20 @@ function CustomerProductSubscriptionContractCard({ customer, mainCustomer }: { c
   );
 }
 
-export default CustomerProductSubscriptionContractCard;
-
 export function CustomerDetailModal({ customer, isOpen, onClose }: CustomerDetailModalProps) {
   const [selectedMonth, setSelectedMonth] = useState("2");
   const [customerHistory, setCustomerHistory] = useState<CustomerHistory | null>(null);
-  const [churnFactors, setChurnFactors] = useState<{ factor: string; impact: number }[]>([]);
   const [churnProbability, setChurnProbability] = useState(0);
 
   const fetchCustomerData = useCallback(async () => {
     if (!customer) return;
     try {
-      const [historyRes, featureRes] = await Promise.all([
-        axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/customers/${customer.sha2_hash}/detailed-history`, {
-          params: { p_mt: parseInt(selectedMonth) },
-        }),
-        axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/customers/${customer.sha2_hash}/feature-importance`, {
-          params: { p_mt: parseInt(selectedMonth) },
-        }),
-      ]);
+      const historyRes = await axios.get(`${process.env.NEXT_PUBLIC_API_BASE_URL}/customers/${customer.sha2_hash}/detailed-history`, {
+        params: { p_mt: parseInt(selectedMonth) },
+      });
 
       setCustomerHistory(historyRes.data);
-
-      const featureData: FeatureImportanceData[] = featureRes.data;
-      if (featureData.length > 0) {
-        const record = featureData[0];
-        setChurnFactors(
-          Object.keys(record)
-            .filter((key) => key.startsWith("feature_") && record[key])
-            .map((key) => ({
-              factor: featureTranslations[record[key]] || record[key], 
-              impact: (record[`impact_value_${key.split("_")[1]}`] || 0) * 100,
-            }))
-        );
-        setChurnProbability((record.churn_probability || 0) * 100);
-      }
+      setChurnProbability((historyRes.data.churn_probability || 0) * 100);
     } catch (error) {
       console.error("데이터 불러오기 실패:", error);
     }
@@ -116,7 +100,7 @@ export function CustomerDetailModal({ customer, isOpen, onClose }: CustomerDetai
 
   useEffect(() => {
     fetchCustomerData();
-  }, [fetchCustomerData]);
+  }, [fetchCustomerData, selectedMonth]);
 
   if (!customer || !customerHistory) return null;
 
@@ -139,22 +123,32 @@ export function CustomerDetailModal({ customer, isOpen, onClose }: CustomerDetai
           </div>
         </DialogHeader>
 
+        {/* 고객 상세 정보 카드 */}
         <CustomerProductSubscriptionContractCard customer={customerHistory} mainCustomer={customer} />
 
+        {/* 주요 해지 요인 차트 */}
+        <Card>
+          <CardContent>
+            <ChurnFactorsChart month={selectedMonth} />
+          </CardContent>
+        </Card>
+
+        {/* 해지 확률 막대 그래프 */}
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center space-x-2 text-[#ED174D] mb-4">
-              <TrendingDown className="w-5 h-5" />
-              <span className="font-semibold text-lg">주요 해지 요인</span>
+              <AlertTriangle className="w-5 h-5" />
+              <span className="font-semibold text-lg">해지 확률</span>
             </div>
-            <ul className="space-y-2">
-              {churnFactors.map((factor, index) => (
-                <li key={index} className="flex justify-between">
-                  <span className="text-sm">{factor.factor}</span>
-                  <span className="text-sm font-medium">{factor.impact.toFixed(1)}%</span>
-                </li>
-              ))}
-            </ul>
+            <div className="flex items-center gap-4">
+              <div className="w-full h-4 bg-gray-100 rounded-full relative">
+                <div className="h-full rounded-full transition-all duration-500" 
+                     style={{ width: `${churnProbability}%`, backgroundColor: getRiskColor(customer.customer_category) }} />
+              </div>
+              <span className="text-lg font-semibold" style={{ color: getRiskColor(customer.customer_category) }}>
+                {churnProbability.toFixed(1)}%
+              </span>
+            </div>
           </CardContent>
         </Card>
       </DialogContent>
