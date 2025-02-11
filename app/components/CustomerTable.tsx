@@ -9,10 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Toaster } from "react-hot-toast";
 import { toast } from "react-hot-toast";
 import { CustomerDetailModal } from "./CustomerDetailModal";
-import type { Customer } from "../types/customer";  
+import type { Customer } from "../types/customer";
 import { getRiskColor } from "../utils/colors";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://54.206.52.197:8000";
 
 export default function CustomerTable() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -88,16 +88,27 @@ export default function CustomerTable() {
     };
   }, [fetchCustomers, hasMore]);
 
-  // SHA2 클립보드 복사 기능
-  const copyToClipboard = useCallback((event: React.MouseEvent, text: string) => {
+  // SHA2 클립보드 복사 기능 (클립보드 복사와 HTTP 요청을 별도로 분리)
+  const copyToClipboard = useCallback(async (event: React.MouseEvent, text: string) => {
     event.stopPropagation();
-    navigator.clipboard.writeText(text)
-      .then(() => {
-        toast.success("SHA2가 클립보드에 복사되었습니다.", { style: { whiteSpace: "nowrap" } });
-      })
-      .catch(() => {
-        toast.error("복사에 실패했습니다.");
-      });
+
+    try {
+      // 클립보드에 텍스트 복사 시도
+      await navigator.clipboard.writeText(text);
+      toast.success("SHA2가 클립보드에 복사되었습니다.", { style: { whiteSpace: "nowrap" } });
+    } catch (copyError) {
+      console.error("클립보드 복사 실패:", copyError);
+      toast.error("클립보드 복사에 실패했습니다.");
+      return;
+    }
+
+    try {
+      // HTTP 요청 실행 (예시: 복사 기록을 남기기 위한 POST 요청)
+      await axios.post(`${API_BASE_URL}/clipboard`, { sha2: text });
+    } catch (httpError) {
+      console.error("HTTP 요청 실패:", httpError);
+      // HTTP 요청 실패에 따른 별도 처리가 필요하면 여기서 처리합니다.
+    }
   }, []);
 
   // 고객 클릭 시 모달 열기
@@ -189,14 +200,14 @@ export default function CustomerTable() {
             </TableHeader>
             <TableBody>
               {customers.map((customer) => (
-                <TableRow 
-                  key={customer.sha2_hash} 
-                  onClick={() => handleRowClick(customer)} 
+                <TableRow
+                  key={customer.sha2_hash}
+                  onClick={() => handleRowClick(customer)}
                   className="cursor-pointer hover:bg-gray-100"
                 >
                   {/* SHA2 셀에 클립보드 복사 기능 추가 */}
-                  <TableCell 
-                    onClick={(e) => copyToClipboard(e, customer.sha2_hash)} 
+                  <TableCell
+                    onClick={(e) => copyToClipboard(e, customer.sha2_hash)}
                     className="cursor-pointer hover:underline"
                   >
                     {customer.sha2_hash.slice(0, 6)}...
@@ -207,8 +218,8 @@ export default function CustomerTable() {
                   <TableCell>{customer.AGMT_END_YMD}</TableCell>
                   <TableCell>{(customer.churn_probability * 100).toFixed(2)}%</TableCell>
                   {/* 이탈 위험도에 getRiskColor()로 동적 색상 적용 */}
-                  <TableCell 
-                    className="font-bold text-center" 
+                  <TableCell
+                    className="font-bold text-center"
                     style={{ color: getRiskColor(customer.customer_category) }}
                   >
                     {customer.customer_category}
@@ -221,10 +232,10 @@ export default function CustomerTable() {
           <div ref={observerRef} className="h-4"></div>
         </div>
       </CardContent>
-      <CustomerDetailModal 
-        customer={selectedCustomer} 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+      <CustomerDetailModal
+        customer={selectedCustomer}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
       />
     </Card>
   );

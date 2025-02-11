@@ -15,7 +15,7 @@ export default function ChurnRateChart({ selectedMonth }: ChurnRateChartProps) {
   useEffect(() => {
     const fetchChurnRate = async () => {
       try {
-        const response = await axios.get("http://localhost:8000/api/churn_rate")
+        const response = await axios.get("http://54.206.52.197:8000/api/churn_rate")
         const filteredData = response.data
           .filter((item: any) => item.p_mt !== 12) // ✅ 12월 제거
           .map((item: any) => ({

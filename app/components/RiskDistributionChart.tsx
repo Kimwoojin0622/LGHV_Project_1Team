@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { PieChart, Pie, Tooltip, Cell } from "recharts";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://54.206.52.197:8000";
 
 // 🔹 위험도별 색상 지정 (매우 위험 - 빨강, 위험 - 주황, 주의 - 노랑)
 const COLORS = ["#FF0000", "#FFA500", "#FFFF00"];

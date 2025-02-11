@@ -2,7 +2,7 @@
 import { useMemo, useEffect, useState } from "react";
 import axios from "axios";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://54.206.52.197:8000";
 
 export const useMonthlyStats = () => {
   const [monthlyData, setMonthlyData] = useState<any | null>(null);

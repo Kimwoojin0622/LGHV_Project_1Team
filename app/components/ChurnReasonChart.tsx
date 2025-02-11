@@ -23,7 +23,7 @@ export default function ChurnReasonChart({ selectedMonth }: ChurnReasonChartProp
     const fetchChurnCategoryData = async () => {
       try {
         // API에서 해당 월의 category 데이터를 가져옴
-        const response = await axios.get(`http://localhost:8000/api/churn_rate?p_mt=${selectedMonth}`)
+        const response = await axios.get(`http://54.206.52.197:8000/api/churn_rate?p_mt=${selectedMonth}`)
         const data = response.data.find((item: any) => item.p_mt === parseInt(selectedMonth, 10))
 
         if (data) {

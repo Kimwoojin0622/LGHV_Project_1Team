@@ -12,7 +12,7 @@ app = FastAPI()
 # CORS 설정 추가
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React 개발 서버 주소
+    allow_origins=["*"],  # React 개발 서버 주소
     allow_credentials=True,
     allow_methods=["*"],  # 모든 HTTP 메서드 허용
     allow_headers=["*"],  # 모든 헤더 허용
@@ -79,3 +79,4 @@ app.include_router(riskanalysis.router, prefix="/risk-summary", tags=["Risk Anal
 @app.get("/")
 def root():
     return {"message": "API is running!"}
+

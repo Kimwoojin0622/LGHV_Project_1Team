@@ -5,6 +5,19 @@ import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
+// ✅ **영어 → 한글 매핑 객체**
+const churnReasonMap: Record<string, string> = {
+  "BUNDLE_YN": "번들 가입 여부",
+  "TV_I_CNT": "TV 이용 개수",
+  "PROD_NM_GRP": "상품명 그룹",
+  "AGMT_KIND_NM": "계약 종류",
+  "STB_RES_1M_YN": "STB 1개월 내 해지 여부",
+  "MONTHS_REMAINING": "남은 계약 개월 수",
+  "MEDIA_NM_GRP": "미디어 그룹",
+  "CH_HH_AVG_MONTH1": "최근 1개월 평균 채널 이용",
+  "VOC_TOTAL_MONTH1_YN": "최근 1개월 VOC 발생 여부",
+};
+
 interface ChurnImpact {
   reason: string;
   percentage: number;
@@ -17,14 +30,14 @@ export default function ImportantFeaturesChart({ selectedMonth }: { selectedMont
   useEffect(() => {
     const fetchChurnReasons = async () => {
       try {
-        const response = await axios.get(`http://localhost:8000/api/churn_reasons?p_mt=${selectedMonth}`);
+        const response = await axios.get(`http://54.206.52.197:8000/api/churn_reasons?p_mt=${selectedMonth}`);
 
         console.log("📊 Fetched Churn Impact Data:", response.data);
 
-        // ✅ **모든 데이터에서 가장 큰 값 9개 선택 후 내림차순 유지**
+        // ✅ **데이터 변환 및 정렬**
         const sortedData = response.data
           .map((item: any) => ({
-            reason: item.reason,
+            reason: churnReasonMap[item.reason] || item.reason, // ✅ 한글 변환 적용
             percentage: Number(item.percentage),
           }))
           .sort((a: ChurnImpact, b: ChurnImpact) => b.percentage - a.percentage) // ✅ **큰 값부터 정렬**
@@ -61,8 +74,12 @@ export default function ImportantFeaturesChart({ selectedMonth }: { selectedMont
               >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" domain={[0, "dataMax"]} />
-                <YAxis dataKey="reason" type="category" width={150} /> {/* ✅ reversed 제거! */}
-                <Tooltip formatter={(value) => `${value.toFixed(2)}%`} />
+                <YAxis
+                  dataKey="reason"
+                  type="category"
+                  width={150}
+                /> {/* ✅ 한글 변환된 이유 표시 */}
+                <Tooltip formatter={(value, name) => [`${value.toFixed(2)}%`, name]} />
                 <Bar dataKey="percentage" fill="#ED174D">
                   {data.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={`rgba(237, 23, 77, ${0.7 - index * (0.4 / data.length)})`} />

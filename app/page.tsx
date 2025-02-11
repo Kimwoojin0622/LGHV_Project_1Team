@@ -10,73 +10,66 @@ import ImportantFeaturesChart from "./components/ImportantFeaturesChart";
 import MonthSelector from "./components/MonthSelector";
 import { format } from "date-fns";
 
-// ✅ **MonthlyData Interface**
-interface MonthlyData {
-  p_mt: number;
-  total: number;
-  churn: number;
-  new: number;
-  churn_rate: number;
-  high_risk_customers: any[];
-  churn_reasons: { [key: string]: number };
-}
-
 // ✅ **이전 월 가져오기 함수**
 function getPreviousMonth(currentMonth: number): number {
-  return currentMonth > 2 ? currentMonth - 1 : 1; // Prevents going below 1
-}
-
-// ✅ **트렌드 계산 함수**
-function calculateTrend(
-  current?: number,
-  previous?: number
-): { trend: "up" | "down" | undefined; percentage: string } {
-  if (!previous || !current || previous === 0) {
-    return { trend: undefined, percentage: "0.00" };
-  }
-
-  const diff = current - previous;
-  return {
-    trend: diff > 0 ? "up" : diff < 0 ? "down" : undefined,
-    percentage: Math.abs((diff / previous) * 100).toFixed(2),
-  };
+  return currentMonth > 1 ? currentMonth - 1 : 12; // ✅ 1월이면 12월로 롤백
 }
 
 export default function Dashboard() {
   const [selectedMonth, setSelectedMonth] = useState<number>(12);
-  const [monthlyData, setMonthlyData] = useState<Record<number, MonthlyData>>({});
+  const [monthlyData, setMonthlyData] = useState<Record<number, any>>({});
+  const [previousMonthData, setPreviousMonthData] = useState<any>({});
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
         const [churnResponse, highRiskResponse, reasonsResponse] = await Promise.all([
-          axios.get(`http://localhost:8000/api/churn_rate?p_mt=${selectedMonth}`),
-          axios.get(`http://localhost:8000/api/high_risk_customers?p_mt=${selectedMonth}`),
-          axios.get(`http://localhost:8000/api/churn_reasons?p_mt=${selectedMonth}`)
+          axios.get(`http://54.206.52.197:8000/api/churn_rate?p_mt=${selectedMonth}`),
+          axios.get(`http://54.206.52.197:8000/api/high_risk_customers?p_mt=${selectedMonth}`),
+          axios.get(`http://54.206.52.197:8000/api/churn_reasons?p_mt=${selectedMonth}`)
         ]);
 
-        const churnData = churnResponse.data.reduce((acc: Record<number, MonthlyData>, item: any) => {
+        const churnData = churnResponse.data.reduce((acc: Record<number, any>, item: any) => {
           acc[item.p_mt] = {
             p_mt: item.p_mt,
-            total: item.total_customers,
-            churn: item.churn_customers,
-            new: item.new_customers,
-            churn_rate: parseFloat(((item.churn_customers / item.total_customers) * 100).toFixed(2)),
+            total: item.total_customers || 0,
+            churn: item.churn_customers || 0,
+            new: item.new_customers || 0,
+            churn_rate: item.total_customers
+              ? parseFloat(((item.churn_customers / item.total_customers) * 100).toFixed(2))
+              : 0,
             high_risk_customers: [],
-            churn_reasons: {}
+            churn_reasons: {},
           };
           return acc;
         }, {});
 
-        churnData[selectedMonth] = churnData[selectedMonth] || { high_risk_customers: [], churn_reasons: {} };
         churnData[selectedMonth].high_risk_customers = highRiskResponse.data || [];
         churnData[selectedMonth].churn_reasons = reasonsResponse.data.reduce((acc: Record<string, number>, item: any) => {
           acc[item.reason] = item.percentage;
           return acc;
         }, {});
 
-        setMonthlyData(churnData);
+        // ✅ 데이터 저장 후 이전 달 데이터 가져오기
+        setMonthlyData((prev) => ({
+          ...prev,
+          ...churnData,
+        }));
+
+        const previousMonth = getPreviousMonth(selectedMonth);
+        const prevMonthResponse = await axios.get(`http://54.206.52.197:8000/api/churn_rate?p_mt=${previousMonth}`);
+        const prevMonthData = prevMonthResponse.data.reduce((acc: Record<number, any>, item: any) => {
+          acc[item.p_mt] = {
+            churn: item.churn_customers || 0,
+            new: item.new_customers || 0,
+          };
+          return acc;
+        }, {});
+
+        setPreviousMonthData(prevMonthData[previousMonth] || { churn: 0, new: 0 });
+
         setLoading(false);
       } catch (error) {
         console.error("🚨 데이터 가져오기 실패:", error);
@@ -87,13 +80,28 @@ export default function Dashboard() {
     fetchData();
   }, [selectedMonth]);
 
-  const data = monthlyData[selectedMonth] || {};
-  const previousMonth = getPreviousMonth(selectedMonth);
-  const previousData = monthlyData[previousMonth] || {};
+  const data = monthlyData[selectedMonth] || {
+    total: 0,
+    churn: 0,
+    new: 0,
+    churn_rate: 0,
+    high_risk_customers: [],
+    churn_reasons: {},
+  };
 
-  // ✅ **트렌드 계산**
-  const churnTrend = calculateTrend(data.churn, previousData?.churn);
-  const newCustomerTrend = calculateTrend(data.new, previousData?.new);
+  // ✅ 트렌드 계산 (데이터가 완전히 로드된 후 계산)
+  const churnPercentage =
+    previousMonthData.churn > 0
+      ? ((data.churn - previousMonthData.churn) / previousMonthData.churn) * 100
+      : 0;
+
+  const newPercentage =
+    previousMonthData.new > 0
+      ? ((data.new - previousMonthData.new) / previousMonthData.new) * 100
+      : 0;
+
+  const churnTrend = churnPercentage > 0 ? "up" : churnPercentage < 0 ? "down" : "flat";
+  const newCustomerTrend = newPercentage > 0 ? "up" : newPercentage < 0 ? "down" : "flat";
 
   return (
     <div className="space-y-6">
@@ -104,33 +112,39 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard title="총 고객 수" value={data.total?.toLocaleString() || "-"} />
-        <StatCard
-          title="해지 고객 수"
-          value={data.churn?.toLocaleString() || "-"}
-          trend={churnTrend.trend}
-          percentage={churnTrend.percentage + "%"}
-        />
-        <StatCard
-          title="신규 고객"
-          value={data.new?.toLocaleString() || "-"}
-          trend={newCustomerTrend.trend}
-          percentage={newCustomerTrend.percentage + "%"}
-        />
-      </div>
+      {loading ? (
+        <p className="text-center text-gray-500">📊 데이터 로딩 중...</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <StatCard title="총 고객 수" value={data.total?.toLocaleString() || "-"} />
+            <StatCard
+              title="해지 고객 수"
+              value={data.churn?.toLocaleString() || "-"}
+              trend={churnTrend}
+              percentage={churnPercentage.toFixed(2) + "%"}
+            />
+            <StatCard
+              title="신규 고객"
+              value={data.new?.toLocaleString() || "-"}
+              trend={newCustomerTrend}
+              percentage={newPercentage.toFixed(2) + "%"}
+            />
+          </div>
 
-      <ChurnRateChart selectedMonth={selectedMonth} />
+          <ChurnRateChart selectedMonth={selectedMonth} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ImportantFeaturesChart selectedMonth={selectedMonth} /> {/* ✅ 주요 해지 영향 요인 추가 */}
-        <ChurnReasonChart selectedMonth={selectedMonth.toString()} />
-      </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ImportantFeaturesChart selectedMonth={selectedMonth} />
+            <ChurnReasonChart selectedMonth={selectedMonth.toString()} />
+          </div>
 
-      <RecentChurnsTable 
-        customers={data.high_risk_customers || []} 
-        referenceDate={format(new Date(), "yyyy-MM-dd")} 
-      />
+          <RecentChurnsTable
+            customers={data.high_risk_customers || []}
+            referenceDate={format(new Date(), "yyyy-MM-dd")}
+          />
+        </>
+      )}
     </div>
   );
 }
