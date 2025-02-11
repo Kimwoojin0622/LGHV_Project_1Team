@@ -1,6 +1,6 @@
 services:
   backend:
-    build: ./BACKEND/backend
+    build: ./BACKEND/backend/
     ports:
       - "8000:8000"
     env_file:
