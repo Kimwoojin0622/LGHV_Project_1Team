@@ -9,8 +9,8 @@ import { TrendingDown, AlertTriangle, User, FileSignature, Calendar } from "luci
 import { Customer, CustomerHistory, FeatureImportanceData, CustomerDetailModalProps } from "../types/customer";
 import { getRiskColor } from "../utils/colors";
 
-// API 호출을 위한 절대 경로 (하드코딩)
-const API_BASE_URL = "http://54.206.52.197:8000";
+// API 호출을 위한 절대 경로 (환경 변수 우선, 없으면 하드코딩)
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://54.206.52.197:8000";
 
 const featureTranslations: { [key: string]: string } = {
   "TV_I_CNT": "TV 사용 댓수",
@@ -107,12 +107,20 @@ export function CustomerDetailModal({ customer, isOpen, onClose }: CustomerDetai
   const fetchCustomerData = useCallback(async () => {
     if (!customer) return;
     try {
+      // 요청 URL 로그로 확인 (detailed-history)
+      const detailedHistoryUrl = `${API_BASE_URL}/customers/${customer.sha2_hash}/detailed-history`;
+      console.log("요청 URL (detailed-history):", detailedHistoryUrl);
+
+      // 요청 URL 로그로 확인 (feature-importance)
+      const featureImportanceUrl = `${API_BASE_URL}/customers/${customer.sha2_hash}/feature-importance`;
+      console.log("요청 URL (feature-importance):", featureImportanceUrl);
+
       // 상세 이력과 중요 피처 영향도 데이터를 병렬로 호출
       const [historyRes, featureRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/customers/${customer.sha2_hash}/detailed-history`, {
+        axios.get(detailedHistoryUrl, {
           params: { p_mt: parseInt(selectedMonth) },
         }),
-        axios.get(`${API_BASE_URL}/customers/${customer.sha2_hash}/feature-importance`, {
+        axios.get(featureImportanceUrl, {
           params: { p_mt: parseInt(selectedMonth) },
         }),
       ]);
