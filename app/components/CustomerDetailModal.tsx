@@ -9,8 +9,8 @@ import { TrendingDown, AlertTriangle, User, FileSignature, Calendar } from "luci
 import { Customer, CustomerHistory, FeatureImportanceData, CustomerDetailModalProps } from "../types/customer";
 import { getRiskColor } from "../utils/colors";
 
-// API 호출을 위한 절대 경로
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://54.206.52.197/:8000";
+// API 호출을 위한 절대 경로 (하드코딩)
+const API_BASE_URL = "http://54.206.52.197:8000";
 
 const featureTranslations: { [key: string]: string } = {
   "TV_I_CNT": "TV 사용 댓수",
