@@ -21,12 +21,27 @@ export default function DateTimeDisplay() {
   const [dateTime, setDateTime] = useState<Date | null>(null)
   const [showGreeting, setShowGreeting] = useState(true)
   const [isGreetingVisible, setIsGreetingVisible] = useState(true)
+  const [firstAccessTime, setFirstAccessTime] = useState<Date | null>(null)
 
   useEffect(() => {
-    // Set initial time only after component mounts on client
-    setDateTime(new Date())
+    // 초기 시간과 최초 접속 시간 설정
+    const now = new Date()
+    setDateTime(now)
+    
+    // 오늘 날짜의 키 생성 (YYYY-MM-DD 형식)
+    const today = now.toISOString().split('T')[0]
+    const storageKey = `firstAccessTime_${today}`
+    
+    // 최초 접속 시간을 localStorage에서 가져오거나 현재 시간으로 설정
+    const storedTime = localStorage.getItem(storageKey)
+    if (storedTime) {
+      setFirstAccessTime(new Date(storedTime))
+    } else {
+      localStorage.setItem(storageKey, now.toString())
+      setFirstAccessTime(now)
+    }
 
-    // Update time every second
+    // 1초마다 시간 업데이트
     const timer = setInterval(() => setDateTime(new Date()), 1000)
 
     // 15초 후에 인사말 페이드아웃 시작
@@ -38,14 +53,14 @@ export default function DateTimeDisplay() {
       }, 1000)
     }, 15000)
 
-    // Cleanup interval on unmount
+    // 컴포넌트 언마운트 시 정리
     return () => {
       clearInterval(timer)
       clearTimeout(greetingTimer)
     }
   }, [])
 
-  // Don't render anything until after first client-side render
+  // 클라이언트 사이드 첫 렌더링 전까지 아무것도 표시하지 않음
   if (!dateTime) return null
 
   const getGreeting = () => {
@@ -67,6 +82,11 @@ export default function DateTimeDisplay() {
       {isGreetingVisible && (
         <span className={`text-gray-700 font-roboto font-bold ${showGreeting ? 'greeting-fade-enter' : 'greeting-fade-exit'}`}>
           {getGreeting()}
+        </span>
+      )}
+      {!isGreetingVisible && firstAccessTime && (
+        <span className="text-gray-700 font-roboto font-bold">
+          {firstAccessTime.toLocaleDateString("ko-KR", {month: "long", day: "numeric"})} 최초 접속 시간: {firstAccessTime.toLocaleTimeString("ko-KR")}
         </span>
       )}
       <div className="text-sm text-gray-600">

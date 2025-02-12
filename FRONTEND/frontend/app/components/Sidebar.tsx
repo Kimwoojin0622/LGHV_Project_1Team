@@ -66,7 +66,7 @@ export default function Sidebar() {
     <aside className="w-64 bg-[#A50034] fixed top-16 bottom-0 left-0 z-40">
       <nav className="h-full flex flex-col p-4">
         <ul className="space-y-2">
-          {menuItems.map((item) => {
+          {menuItems.map((item, index) => {
             const Icon = item.icon
             return (
               <li key={item.href}>
@@ -87,15 +87,15 @@ export default function Sidebar() {
                     <span>{item.name}</span>
                   </Link>
                 </div>
+                {index === menuItems.length - 1 && (
+                  <div className="mt-4">
+                    <ExportPDFButton />
+                  </div>
+                )}
               </li>
             )
           })}
         </ul>
-        
-        {/* PDF 내보내기 버튼 추가 */}
-        <div className="mt-20">
-          <ExportPDFButton />
-        </div>
       </nav>
     </aside>
   )

@@ -24,20 +24,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TrendingDown, AlertTriangle, User, FileSignature, Calendar, Loader2 } from "lucide-react";
 import { Customer, CustomerHistory, FeatureImportanceData, CustomerDetailModalProps } from "../types/customer";
 import { getRiskColor } from "../utils/colors";
-
-/**
- * 고객 데이터 인터페이스 정의
- */
-interface CustomerData {
-  name: string           // 고객 이름
-  age: number           // 고객 나이
-  gender: string        // 고객 성별
-  address: string       // 고객 주소
-  productName: string   // 상품명
-  productPrice: number  // 상품 가격
-  agreementPeriod: string // 약정 기간
-  riskScore: number     // 해지 위험도 점수
-}
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
+import { createPortal } from "react-dom";
 
 /**
  * 모달 컴포넌트 props 타입 정의
@@ -305,6 +297,245 @@ export function CustomerDetailModal({ customer, isOpen, onClose }: CustomerDetai
     }
   }, [customer, selectedMonth]);
 
+  // 해지 요인 그룹별 마케팅 전략 정의
+  const MARKETING_STRATEGIES = {
+    viewing: {
+      factors: ["최근 시청일", "셋톱박스 휴면 유무", "1개월 평균 채널 시청시간"],
+      strategy: "최근 시청 관련 마케팅 전략",
+      solutions: [
+        {
+          title: "1. 최근 시청 이력 부족 고객",
+          subtitle: "최근 시청 이력이 없을수록 해지 가능성 증가",
+          details: [
+            "(1) 무료 VOD 체험 & 사용자 선호",
+            "인기 드라마, 예능, 영화 중 첫 화(또는 일부 에피소드) 무료 시청권 제공",
+            "채널별 하이라이트 영상을 앱 푸시/문자로 안내해 '재시청'을 유도",
+            "사용자가 선호하는 채널 및 VOD에 대한 맞춤형 큐레이션 메시지 발송",
+            "",
+            "(2) 이벤트 / 챌린지",
+            "일정 기간 내 n회 이상 시청 시, 포인트/쿠폰 지급 등 '시청 미션' 부여",
+            "시청 인증 이벤트로 사용자 참여율 높임",
+            "시청만 해도 월 요금 할부 할인 등 즉각적 보상정책 병행"
+          ]
+        },
+        {
+          title: "2. 셋탑박스 휴면 고객",
+          subtitle: "최근 한 달간 셋탑박스 미사용 시 해지 가능성 증가",
+          details: [
+            "(1) '휴면 깨기' 프로모션",
+            "셋탑박스 전원만 켜도 즉시 보상이 주어지는 이벤트",
+            "1개월 요금 할인, 특정 채널 무료 시청, VOD 쿠폰 등",
+            "기가·리모컨 문제 시 신속 수리·교체로 만족도 향상",
+            "",
+            "(2) OTT 결합 및 무료 체험",
+            "LG헬로비전의 OTT 연동(예: 유튜브, 넷플릭스 등)을 한시적 무료 체험 (HD → UHD 전환 등)",
+            "셋탑박스를 통해 OTT를 간편하게 시청 가능하다는 점 홍보"
+          ]
+        },
+        {
+          title: "3. 낮은 월평균 시청시간 고객",
+          subtitle: "월평균 채널 시청 시간이 적을수록 해지 가능성 증가",
+          details: [
+            "(1) 관심사 기반 채널·상품 재구성",
+            "취향 조사 결과를 바탕으로 고객이 선호하는 프로그램 위주의 채널 패키지 추천",
+            "시청량 적은 고객에게 저가 상품, 1화 무료권 등 부담 완화 정책 제공",
+            "",
+            "(2) 다양한 할인 혜택",
+            "특정 콘텐츠 무료 시청권 제공",
+            "이른 가능성이 큰 고객을 위한 맞춤 할인 VOD 쿠폰 등 프로모션 진행"
+          ]
+        }
+      ]
+    },
+    contract: {
+      factors: ["약정 남은 개월 수", "총 사용 일수", "약정 종료일", "약정 종류"],
+      strategy: "약정 및 사용 일수 관련 마케팅 전략",
+      solutions: [
+        {
+          title: "1. 남은 개월 수가 적은 고객",
+          subtitle: "약정 만료가 가까울수록 해지 가능성 증가",
+          details: [
+            "(1) 재약정(재계약) 유도",
+            "만료 1~2개월 전부터 안내 (요금 할인, 번들 옵션 등 신규 제안)",
+            "단기 연장 프로모션(1년 추가 시 특별 혜택 등)"
+          ]
+        },
+        {
+          title: "2. 장기 이용 고객",
+          subtitle: "충성도 높은 고객 → 우대정책으로 이탈을 최소화",
+          details: [
+            "(1) Loyalty Program(누적 사용 등급, 혜택 확대)",
+            "예) '5년차 이상 전용 프리미엄 채널', '매년 VOD 쿠폰'",
+            "번들 할인 확대, 셋탑 기기 무상 업그레이드 등 혜택 제공"
+          ]
+        },
+        {
+          title: "3. 신규·단기 이용 고객",
+          subtitle: "초기 적응기 실패 → 해지 가능성 증가 / 신규 & 약정승계일수록 해지 가능성 증가",
+          details: [
+            "(1) 집중 케어 & 웰컴 패키지",
+            "가입 후 첫 3개월 할인, 사용 가이드, 맞춤형 채널 추천",
+            "VOC 모니터링으로 즉각 문제 해결",
+            "",
+            "(2) 초기 만족도 관리",
+            "웰컴 프로모션(가입 초기 할인, 무료 채널 체험 등)",
+            "조기 VOC 모니터링으로 불만을 즉각 해소"
+          ]
+        },
+        {
+          title: "4. 약정 종료 구간",
+          subtitle: "약정 만료 전후 1개월이 해지 위험이 가장 높은 구간",
+          details: [
+            "(1) 만료 1개월 전 관리",
+            "사전 안내(문자·이메일·전화)로 재약정 혜택 강조",
+            "위약금 부담 고객에겐 부분 면제, 번들 할인, VOD 쿠폰 등 차별적 제공",
+            "",
+            "(2) 만료 직후 관리",
+            "해지 VOC가 급증하는 시점 → 전담 상담팀 운영",
+            "재약정·단기 연장 옵션으로 이탈 방지"
+          ]
+        },
+        {
+          title: "5. 약정 종류",
+          subtitle: "신규 & 약정승계 고객일수록 해지 가능성 상승",
+          details: [
+            "(1) 초기 만족도 관리",
+            "웰컴 프로모션(가입 초기 할인, 무료 채널 체험 등)",
+            "조기 VOC 모니터링으로 불만을 즉각 해소"
+          ]
+        },
+      ]
+    },
+    voc: {
+      factors: ["최근 한 달 내 전체 상담 여부", "최근 한 달 내 해지 상담 여부"],
+      strategy: "상담 VOC 관련 마케팅 전략",
+      solutions: [
+        {
+          title: "1. 해지 VOC 인입 고객",
+          subtitle: "해지 관련 상담 고객일수록 해지 위험 증가",
+          details: [
+            "(1) 즉각 대응 체계",
+            "해지 문의 발생 시, 리텐션 전담 상담팀으로 바로 연결",
+            "고객 불만을 빠르게 해결하고, 추가 인센티브(요금 할인, 1개월 무료 월정액 등) 제공",
+            "",
+            "(2) Win-back / Retention Offers",
+            "한시적 요금 할인, 유료 채널 무료 시청 1~3개월, OTT(넷플릭스 등) 구독권 등",
+            "해지 전 고객이 '유지 시 이익'을 충분히 느낄 수 있도록 유도"
+          ]
+        },
+        {
+          title: "2. 일반 VOC 인입 고객",
+          subtitle: "단순 불만·기술 문제 등으로 인한 상담 고객",
+          details: [
+            "(1) 해지 가능성 사전 차단",
+            "'채널·VOD·셋탑' 문제를 제때 해결 못 했던 해지로 이어질 수 있음",
+            "VOC 접수 후, 원격지원이나 기사 방문 등을 통해 문제 신속 조치",
+            "처리 결과를 문자·이메일로 피드백하여, 추가 불만이 없도록 마무리"
+          ]
+        }
+      ]
+    },
+    product: {
+      factors: ["상품 매체명", "상품명", "결합 상품 유무"],
+      strategy: "상품 관련 마케팅 전략",
+      solutions: [
+        {
+          title: "1. 결합 상품(번들) 가입 고객",
+          subtitle: "번들 가입 고객에서 해지 가능성 증가",
+          details: [
+            "(1) 번들 상품 혜택 강조",
+            "단일 상품 대비 구독료 절감, 추가 할인 등 가시적 이점 부각",
+            "예) \"TV+인터넷+OTT 결합 시 월 ○○원 할인\"",
+            "",
+            "(2) 번들 유지 인센티브",
+            "장기 번들 사용자 대상 특별 프로모션, 멤버십 포인트 제공",
+            "번들 이탈(부분 해지) 시 놓치는 혜택(할인·무료 채널 등) 강조"
+          ]
+        },
+        {
+          title: "2. 고가 상품 가입 고객",
+          subtitle: "고가 상품을 사용할수록 해지 가능성 증가",
+          details: [
+            "(1) 가치 인식 제고",
+            "프리미엄 채널, 고화질 VOD, 전담 상담 등 차별화된 혜택 홍보",
+            "월 비용이 높더라도 \"그만큼의 가치가 있다\"는 메시지 전달",
+            "",
+            "(2) 다운그레이드 옵션 제안",
+            "해지 대신 '한 단계 낮은 상품'으로 전환 가능하도록 유연성 부여",
+            "중간 가격대 상품을 통해 핵심 기능 유지, 비용 부담 완화",
+            "",
+            "(3) 고가 상품 이용 고객 전담 케어",
+            "VOC 우선 처리, VIP 이벤트, 맞춤형 혜택 제공",
+            "가격 부담이나 불만 발생 시 즉각 해결책(할인, 보상 등)으로 이탈 방지"
+          ]
+        }
+      ]
+    },
+  };
+
+  // 요인이 속한 그룹의 전략 찾기
+  const getStrategyForFactor = (factor: string) => {
+    for (const [_, group] of Object.entries(MARKETING_STRATEGIES)) {
+      if (group.factors.includes(factor)) {
+        return group;
+      }
+    }
+    return null;
+  };
+
+  // 선택된 요인과 관련된 전략을 보여주기 위한 상태 추가
+  const [selectedFactor, setSelectedFactor] = useState<string | null>(null);
+  const [showStrategyModal, setShowStrategyModal] = useState(false);
+
+  // 선택된 요인의 전략 모달
+  const StrategyModal = () => {
+    if (!selectedFactor) return null;
+    const strategy = getStrategyForFactor(selectedFactor);
+    if (!strategy) return null;
+
+    return (
+      <Dialog open={showStrategyModal} onOpenChange={setShowStrategyModal}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{strategy.strategy}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {strategy.solutions.map((solution, sIndex) => (
+              <div key={sIndex} className="space-y-2">
+                <h4 className="text-md font-semibold text-[#A50034]">{solution.title}</h4>
+                {solution.subtitle && (
+                  <p className="text-sm text-gray-600 font-bold">{solution.subtitle}</p>
+                )}
+                <div className="space-y-2">
+                  {solution.details.map((detail, dIndex) => {
+                    const isTitle = detail.startsWith("(1)") || detail.startsWith("(2)");
+                    const isEmpty = detail === "";
+                    return (
+                      <p 
+                        key={dIndex} 
+                        className={`text-sm text-gray-600 ${!isTitle && !isEmpty ? "ml-8" : "ml-4"}`}
+                      >
+                        {detail}
+                      </p>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
+  // hover 가능한 해지 요인 목록
+  const HOVERABLE_FACTORS = [
+    ...MARKETING_STRATEGIES.viewing.factors,
+    ...MARKETING_STRATEGIES.contract.factors,
+    ...MARKETING_STRATEGIES.voc.factors,
+    ...MARKETING_STRATEGIES.product.factors
+  ];
+
   // 위험도별 설명 객체 추가
   const riskLevelDescriptions: { [key: string]: string } = {
     "매우위험": "즉각적인 고객 관리가 필요합니다.",
@@ -381,12 +612,31 @@ export function CustomerDetailModal({ customer, isOpen, onClose }: CustomerDetai
                   <span className="font-semibold text-lg">주요 해지 요인</span>
                 </div>
                 <ul className="space-y-2">
-                  {churnFactors.map((factor, index) => (
-                    <li key={index} className="flex justify-between">
-                      <span className="text-sm">{factor.factor}</span>
-                      <span className="text-sm font-medium">{factor.impact.toFixed(1)}%</span>
-                    </li>
-                  ))}
+                  {churnFactors.map((factor, index) => {
+                    const isHoverable = HOVERABLE_FACTORS.includes(factor.factor);
+                    const strategy = getStrategyForFactor(factor.factor);
+                    
+                    return (
+                      <li key={index} className="flex justify-between group">
+                        {isHoverable ? (
+                          <div className="flex justify-between w-full cursor-pointer hover:bg-gray-50 px-2 py-1 rounded"
+                            onClick={() => {
+                              setSelectedFactor(factor.factor);
+                              setShowStrategyModal(true);
+                            }}
+                          >
+                            <span className="text-sm">{factor.factor}</span>
+                            <span className="text-sm font-medium">{factor.impact.toFixed(1)}%</span>
+                          </div>
+                        ) : (
+                          <div className="flex justify-between w-full px-2 py-1">
+                            <span className="text-sm">{factor.factor}</span>
+                            <span className="text-sm font-medium">{factor.impact.toFixed(1)}%</span>
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </CardContent>
             </Card>
@@ -418,6 +668,8 @@ export function CustomerDetailModal({ customer, isOpen, onClose }: CustomerDetai
           </>
         )}
       </DialogContent>
+      {/* 전략 모달 */}
+      <StrategyModal />
     </Dialog>
   );
 }
