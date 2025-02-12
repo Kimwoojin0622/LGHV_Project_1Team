@@ -1,4 +1,21 @@
+/**
+ * risk-analysis/page.tsx
+ * 리스크 분석 대시보드 페이지
+ * 
+ * 주요 기능:
+ * 1. 월 선택 기능
+ * 2. 위험도별 고객 분포 표시
+ * 3. 해지 사유별 분포 표시
+ * 4. 월별 해지율 추이 표시
+ * 5. 위험도 추이 표시
+ * 
+ * 레이아웃:
+ * - Grid 시스템을 사용하여 차트들을 2열로 배치
+ * - 각 차트는 Card 컴포넌트 내에 배치
+ */
+
 "use client";
+
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,16 +26,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
-const months = ["2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"];
-
+/**
+ * 리스크 분석 대시보드 페이지 컴포넌트
+ */
 export default function RiskAnalysis() {
-  const [selectedMonth, setSelectedMonth] = useState("2월");
-  const [riskStats, setRiskStats] = useState({ totalRiskCustomers: 0, veryHighRisk: 0 });
-  const [prevRiskStats, setPrevRiskStats] = useState({ totalRiskCustomers: 0, veryHighRisk: 0 });
+  // 상태 관리
+  const [selectedMonth, setSelectedMonth] = useState("12월");  // 선택된 월
+  const [riskStats, setRiskStats] = useState({ totalRiskCustomers: 0, veryHighRisk: 0 });  // 위험 고객 통계
+  const [prevRiskStats, setPrevRiskStats] = useState({ totalRiskCustomers: 0, veryHighRisk: 0 });  // 이전 월 위험 고객 통계
 
+  // 월 목록
+  const months = ["2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"];
+
+  // API에서 위험 고객 통계 데이터 가져오기
   useEffect(() => {
     async function fetchData() {
       try {
+        // 현재 월 데이터 조회
         const currentMonth = parseInt(selectedMonth.replace("월", ""));
         const prevMonth = currentMonth - 1;
 
@@ -32,13 +56,17 @@ export default function RiskAnalysis() {
 
         // ✅ 현재 월 데이터
         const currentData = currentResponse.data.length > 0 ? {
-          totalRiskCustomers: currentResponse.data[0].category_risk + currentResponse.data[0].category_high_risk,
+          totalRiskCustomers: currentResponse.data[0].category_high_risk + 
+                            currentResponse.data[0].category_risk + 
+                            currentResponse.data[0].category_caution,
           veryHighRisk: currentResponse.data[0].category_high_risk,
         } : { totalRiskCustomers: 0, veryHighRisk: 0 };
 
         // ✅ 이전 월 데이터 (없으면 기본값 0)
         const prevData = prevResponse.data.length > 0 ? {
-          totalRiskCustomers: prevResponse.data[0].category_risk + prevResponse.data[0].category_high_risk,
+          totalRiskCustomers: prevResponse.data[0].category_high_risk + 
+                            prevResponse.data[0].category_risk + 
+                            prevResponse.data[0].category_caution,
           veryHighRisk: prevResponse.data[0].category_high_risk,
         } : { totalRiskCustomers: 0, veryHighRisk: 0 };
 
@@ -54,11 +82,22 @@ export default function RiskAnalysis() {
     fetchData();
   }, [selectedMonth]);
 
-  // 🔼🔽 증가/감소 상태 계산 함수 (딜레이 없이 동기적으로 업데이트됨)
+  /**
+   * 증가/감소 상태 계산 함수 (딜레이 없이 동기적으로 업데이트됨)
+   * @param current 현재 값
+   * @param previous 이전 값
+   * @returns 증가/감소 아이콘
+   */
   const getTrendIcon = (current: number, previous: number) => {
-    if (current > previous) return <span className="text-red-500 ml-2">▲</span>; // 증가 (빨강)
-    if (current < previous) return <span className="text-blue-500 ml-2">▼</span>; // 감소 (파랑)
-    return null; // 변화 없음
+    // 2월일 경우 화살표를 표시하지 않음
+    if (selectedMonth === "2월") return null;
+    
+    if (current > previous) {
+      return <span className="text-red-500 ml-2">▲</span>;
+    } else if (current < previous) {
+      return <span className="text-blue-500 ml-2">▼</span>;
+    }
+    return null;
   };
 
   return (

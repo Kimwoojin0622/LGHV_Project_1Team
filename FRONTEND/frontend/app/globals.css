@@ -92,3 +92,13 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+.greeting-fade-enter {
+  opacity: 1;
+  transition: opacity 1s ease-out;
+}
+
+.greeting-fade-exit {
+  opacity: 0;
+  transition: opacity 1s ease-out;
+}
