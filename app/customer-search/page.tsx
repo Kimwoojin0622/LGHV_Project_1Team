@@ -14,18 +14,14 @@ export default function CustomerSearch() {
       {/* 통계 카드 */}
       {stats && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <StatCard title="총 고객 수" value={stats.total.formatted} trend={stats.total.trend} />
+          <StatCard title="총 고객 수" value={stats.total.formatted} />
           <StatCard 
             title="해지 고객 수" 
             value={stats.churn.formatted} 
-            trend={stats.churn.trend} 
-            percentage={stats.churn.percentage + "%"} 
           />
           <StatCard 
             title="신규 고객" 
             value={stats.new.formatted} 
-            trend={stats.new.trend} 
-            percentage={stats.new.percentage + "%"} 
           />
         </div>
       )}

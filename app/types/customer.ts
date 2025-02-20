@@ -1,3 +1,5 @@
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://54.206.52.197:8000/";
+
 export interface Customer {
   sha2_hash: string;
   AGE_GRP10: string;
@@ -14,8 +16,11 @@ export interface CustomerHistory {
   sha2_hash: string;
   p_mt: number;
   TOTAL_USED_DAYS: number;
+  BUNDLE_YN: string;
   CH_LAST_DAYS_BF_GRP: string;
+  CH_HH_AVG_MONTH1: number;
   VOC_TOTAL_MONTH1_YN: string;
+  VOC_STOP_CANCEL_MONTH1_YN: string;
   MONTHS_REMAINING: number;
   PROD_NM_GRP: string;
   MEDIA_NM_GRP: string;

@@ -1,0 +1,15 @@
+[2025-02-12T09:19:15.258+0000] {processor.py:186} INFO - Started process (PID=103785) to work on /home/ubuntu/.local/lib/python3.10/site-packages/airflow/example_dags/example_time_delta_sensor_async.py
+[2025-02-12T09:19:15.259+0000] {processor.py:914} INFO - Processing file /home/ubuntu/.local/lib/python3.10/site-packages/airflow/example_dags/example_time_delta_sensor_async.py for tasks to queue
+[2025-02-12T09:19:15.262+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:15.262+0000] {dagbag.py:588} INFO - Filling up the DagBag from /home/ubuntu/.local/lib/python3.10/site-packages/airflow/example_dags/example_time_delta_sensor_async.py
+[2025-02-12T09:19:15.272+0000] {processor.py:925} INFO - DAG(s) 'example_time_delta_sensor_async' retrieved from /home/ubuntu/.local/lib/python3.10/site-packages/airflow/example_dags/example_time_delta_sensor_async.py
+[2025-02-12T09:19:15.411+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:15.408+0000] {override.py:1930} INFO - Created Permission View: can delete on DAG:example_time_delta_sensor_async
+[2025-02-12T09:19:15.430+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:15.430+0000] {override.py:1930} INFO - Created Permission View: can read on DAG:example_time_delta_sensor_async
+[2025-02-12T09:19:15.445+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:15.444+0000] {override.py:1930} INFO - Created Permission View: can edit on DAG:example_time_delta_sensor_async
+[2025-02-12T09:19:15.466+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:15.465+0000] {override.py:1930} INFO - Created Permission View: can create on DAG Run:example_time_delta_sensor_async
+[2025-02-12T09:19:15.480+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:15.479+0000] {override.py:1930} INFO - Created Permission View: can delete on DAG Run:example_time_delta_sensor_async
+[2025-02-12T09:19:15.495+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:15.494+0000] {override.py:1930} INFO - Created Permission View: can read on DAG Run:example_time_delta_sensor_async
+[2025-02-12T09:19:15.510+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:15.510+0000] {override.py:1930} INFO - Created Permission View: menu access on DAG Run:example_time_delta_sensor_async
+[2025-02-12T09:19:15.511+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:15.511+0000] {dag.py:3239} INFO - Sync 1 DAGs
+[2025-02-12T09:19:15.528+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:15.527+0000] {dag.py:3262} INFO - Creating ORM DAG for example_time_delta_sensor_async
+[2025-02-12T09:19:15.529+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:15.528+0000] {dag.py:4180} INFO - Setting next_dagrun for example_time_delta_sensor_async to None, run_after=None
+[2025-02-12T09:19:15.569+0000] {processor.py:208} INFO - Processing /home/ubuntu/.local/lib/python3.10/site-packages/airflow/example_dags/example_time_delta_sensor_async.py took 0.319 seconds

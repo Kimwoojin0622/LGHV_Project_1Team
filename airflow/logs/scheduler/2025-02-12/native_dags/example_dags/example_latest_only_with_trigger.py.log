@@ -1,0 +1,15 @@
+[2025-02-12T09:19:42.156+0000] {processor.py:186} INFO - Started process (PID=103893) to work on /home/ubuntu/.local/lib/python3.10/site-packages/airflow/example_dags/example_latest_only_with_trigger.py
+[2025-02-12T09:19:42.158+0000] {processor.py:914} INFO - Processing file /home/ubuntu/.local/lib/python3.10/site-packages/airflow/example_dags/example_latest_only_with_trigger.py for tasks to queue
+[2025-02-12T09:19:42.160+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:42.160+0000] {dagbag.py:588} INFO - Filling up the DagBag from /home/ubuntu/.local/lib/python3.10/site-packages/airflow/example_dags/example_latest_only_with_trigger.py
+[2025-02-12T09:19:42.173+0000] {processor.py:925} INFO - DAG(s) 'latest_only_with_trigger' retrieved from /home/ubuntu/.local/lib/python3.10/site-packages/airflow/example_dags/example_latest_only_with_trigger.py
+[2025-02-12T09:19:42.382+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:42.382+0000] {override.py:1930} INFO - Created Permission View: can delete on DAG:latest_only_with_trigger
+[2025-02-12T09:19:42.406+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:42.405+0000] {override.py:1930} INFO - Created Permission View: can read on DAG:latest_only_with_trigger
+[2025-02-12T09:19:42.420+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:42.419+0000] {override.py:1930} INFO - Created Permission View: can edit on DAG:latest_only_with_trigger
+[2025-02-12T09:19:42.452+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:42.451+0000] {override.py:1930} INFO - Created Permission View: can create on DAG Run:latest_only_with_trigger
+[2025-02-12T09:19:42.478+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:42.477+0000] {override.py:1930} INFO - Created Permission View: can delete on DAG Run:latest_only_with_trigger
+[2025-02-12T09:19:42.491+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:42.491+0000] {override.py:1930} INFO - Created Permission View: can read on DAG Run:latest_only_with_trigger
+[2025-02-12T09:19:42.516+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:42.516+0000] {override.py:1930} INFO - Created Permission View: menu access on DAG Run:latest_only_with_trigger
+[2025-02-12T09:19:42.518+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:42.518+0000] {dag.py:3239} INFO - Sync 1 DAGs
+[2025-02-12T09:19:42.535+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:42.535+0000] {dag.py:3262} INFO - Creating ORM DAG for latest_only_with_trigger
+[2025-02-12T09:19:42.547+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:42.546+0000] {dag.py:4180} INFO - Setting next_dagrun for latest_only_with_trigger to 2025-02-12 04:00:00+00:00, run_after=2025-02-12 08:00:00+00:00
+[2025-02-12T09:19:42.589+0000] {processor.py:208} INFO - Processing /home/ubuntu/.local/lib/python3.10/site-packages/airflow/example_dags/example_latest_only_with_trigger.py took 0.442 seconds

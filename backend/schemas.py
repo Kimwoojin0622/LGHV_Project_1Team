@@ -48,8 +48,11 @@ class TpsCancelModelsRead(BaseModel):
     sha2_hash: str
     p_mt: int
     TOTAL_USED_DAYS: Optional[int]
+    BUNDLE_YN: Optional[str]
     CH_LAST_DAYS_BF_GRP: Optional[str]
+    CH_HH_AVG_MONTH1: Optional[float]
     VOC_TOTAL_MONTH1_YN: Optional[str]
+    VOC_STOP_CANCEL_MONTH1_YN: Optional[str]
     MONTHS_REMAINING: Optional[int]
     PROD_NM_GRP: Optional[str]
     MEDIA_NM_GRP: Optional[str]

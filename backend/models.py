@@ -69,12 +69,12 @@ class TpsCancelModels(Base):
     CH_LAST_DAYS_BF_GRP = Column(Text)
     STB_RES_1M_YN = Column(Text)
     AGMT_KIND_NM = Column(Text)
-    BUNDLE_YN = Column(Text)
+    BUNDLE_YN = Column(Text) #1
     TV_I_CNT = Column(Float)
     AGMT_END_SEG = Column(Text)
     AGE_GRP10 = Column(Text, index=True)  # ✅ 연령대 인덱스 추가
-    VOC_STOP_CANCEL_MONTH1_YN = Column(Text)
-    CH_HH_AVG_MONTH1 = Column(Float)
+    VOC_STOP_CANCEL_MONTH1_YN = Column(Text) #2
+    CH_HH_AVG_MONTH1 = Column(Float) #3
     MONTHS_REMAINING = Column(BigInteger, index=True)  # ✅ 남은 개월 수 인덱스 추가
     PROD_NM_GRP = Column(Text, index=True)  # ✅ 상품 그룹 인덱스 추가
     MEDIA_NM_GRP = Column(Text)

@@ -74,8 +74,11 @@ def get_customer_detailed_history(
         TpsCancelModel.sha2_hash,
         TpsCancelModel.p_mt,
         TpsCancelModel.TOTAL_USED_DAYS,
+        TpsCancelModel.BUNDLE_YN,
         TpsCancelModel.CH_LAST_DAYS_BF_GRP,
+        TpsCancelModel.CH_HH_AVG_MONTH1,
         TpsCancelModel.VOC_TOTAL_MONTH1_YN,
+        TpsCancelModel.VOC_STOP_CANCEL_MONTH1_YN,
         TpsCancelModel.MONTHS_REMAINING,
         TpsCancelModel.PROD_NM_GRP,
         TpsCancelModel.MEDIA_NM_GRP,
@@ -97,13 +100,16 @@ def get_customer_detailed_history(
         sha2_hash=result[0],
         p_mt=result[1],
         TOTAL_USED_DAYS=result[2],
-        CH_LAST_DAYS_BF_GRP=result[3],
-        VOC_TOTAL_MONTH1_YN=result[4],
-        MONTHS_REMAINING=result[5],
-        PROD_NM_GRP=result[6],
-        MEDIA_NM_GRP=result[7],
-        churn_probability=result[8],
-        customer_category=result[9]
+        BUNDLE_YN=result[3],
+        CH_LAST_DAYS_BF_GRP=result[4],
+        CH_HH_AVG_MONTH1=result[5],
+        VOC_TOTAL_MONTH1_YN=result[6],
+        VOC_STOP_CANCEL_MONTH1_YN=result[7],
+        MONTHS_REMAINING=result[8],
+        PROD_NM_GRP=result[9],
+        MEDIA_NM_GRP=result[10],
+        churn_probability=result[11],
+        customer_category=result[12]
     )
 
 

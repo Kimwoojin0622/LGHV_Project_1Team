@@ -1,0 +1,15 @@
+[2025-02-12T09:19:04.545+0000] {processor.py:186} INFO - Started process (PID=103777) to work on /home/ubuntu/.local/lib/python3.10/site-packages/airflow/example_dags/tutorial_taskflow_templates.py
+[2025-02-12T09:19:04.546+0000] {processor.py:914} INFO - Processing file /home/ubuntu/.local/lib/python3.10/site-packages/airflow/example_dags/tutorial_taskflow_templates.py for tasks to queue
+[2025-02-12T09:19:04.556+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:04.555+0000] {dagbag.py:588} INFO - Filling up the DagBag from /home/ubuntu/.local/lib/python3.10/site-packages/airflow/example_dags/tutorial_taskflow_templates.py
+[2025-02-12T09:19:04.850+0000] {processor.py:925} INFO - DAG(s) 'tutorial_taskflow_templates' retrieved from /home/ubuntu/.local/lib/python3.10/site-packages/airflow/example_dags/tutorial_taskflow_templates.py
+[2025-02-12T09:19:04.968+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:04.967+0000] {override.py:1930} INFO - Created Permission View: can delete on DAG:tutorial_taskflow_templates
+[2025-02-12T09:19:04.984+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:04.984+0000] {override.py:1930} INFO - Created Permission View: can read on DAG:tutorial_taskflow_templates
+[2025-02-12T09:19:04.996+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:04.995+0000] {override.py:1930} INFO - Created Permission View: can edit on DAG:tutorial_taskflow_templates
+[2025-02-12T09:19:05.025+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:05.025+0000] {override.py:1930} INFO - Created Permission View: can create on DAG Run:tutorial_taskflow_templates
+[2025-02-12T09:19:05.055+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:05.054+0000] {override.py:1930} INFO - Created Permission View: can delete on DAG Run:tutorial_taskflow_templates
+[2025-02-12T09:19:05.073+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:05.072+0000] {override.py:1930} INFO - Created Permission View: can read on DAG Run:tutorial_taskflow_templates
+[2025-02-12T09:19:05.089+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:05.088+0000] {override.py:1930} INFO - Created Permission View: menu access on DAG Run:tutorial_taskflow_templates
+[2025-02-12T09:19:05.089+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:05.089+0000] {dag.py:3239} INFO - Sync 1 DAGs
+[2025-02-12T09:19:05.103+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:05.102+0000] {dag.py:3262} INFO - Creating ORM DAG for tutorial_taskflow_templates
+[2025-02-12T09:19:05.120+0000] {logging_mixin.py:190} INFO - [2025-02-12T09:19:05.120+0000] {dag.py:4180} INFO - Setting next_dagrun for tutorial_taskflow_templates to 2025-02-11 00:00:00+00:00, run_after=2025-02-12 00:00:00+00:00
+[2025-02-12T09:19:05.155+0000] {processor.py:208} INFO - Processing /home/ubuntu/.local/lib/python3.10/site-packages/airflow/example_dags/tutorial_taskflow_templates.py took 0.620 seconds

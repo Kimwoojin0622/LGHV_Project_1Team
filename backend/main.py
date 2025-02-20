@@ -74,9 +74,3 @@ def get_high_risk_customers(db: Session = Depends(get_db), p_mt: int = Query(Non
 
 app.include_router(customers.router, prefix="/customers", tags=["Customers"])
 app.include_router(riskanalysis.router, prefix="/risk-summary", tags=["Risk Analysis"])  # ✅ "/risk" prefix 확인
-
-# ✅ 기본 엔드포인트 추가 (API 정상 작동 확인용)
-@app.get("/")
-def root():
-    return {"message": "API is running!"}
-
