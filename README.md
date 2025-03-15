@@ -33,18 +33,21 @@
 
 ## 📌 CONTENTS
 - 프로젝트 개요
-- 프로젝트 목표
 - 프로젝트 결과물 (시연 영상)
+- 프로젝트 목표
 - 기대 효과
 - 주요 기능
 - 기술 스택
-- 서비스 아키텍쳐
-- 프로젝트 수행 내용
+[서비스 아키텍쳐](#📝-서비스-아키텍쳐)
+[프로젝트 수행 내용](#✅-프로젝트-수행-내용)
 
 ## 💻 프로젝트 개요
 - 본 프로젝트는 LG헬로비전 DX DATA SCHOOL 3기 최종 프로젝트로 진행되었으며, LG헬로비전의 실무 데이터를 활용하여 고객 이탈 문제를 해결하는데 초점을 맞췄습니다.
 - 유료 방송 시장에서 LG헬로비전의 고객 이탈이 증가하고, 매출이 감소하는 문제를 해결하기 위해, 고객 해지 위험 예측 시스템을 구축하였습니다.
 - 이를 통해 <B>해지 가능성이 높은 고객을 사전에 식별하고, 주요 해지 요인을 분석하여 보다 전략적인 의사결정을 지원합니다.</B>
+
+## 🔗 프로젝트 결과물
+👉 시연 영상 : https://www.youtube.com/watch?v=qEpQOe5TlsI
 
 ## 🎯 프로젝트 목표
 1. 해지율 예측 모델 개발
@@ -120,10 +123,17 @@
 - Slack
 - Github, Git(버전 관리)
 
-## 📝 시스템 아키텍쳐
+## 📝 서비스 아키텍쳐
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/c081ea78-8c72-4eab-b956-616165d50fee">
+</div>
+<b>📌 Backend : FastAPI<br>📌 Database : MySQL<br>📌 Frontend : React.js (Next.js 기반)<br>📌 Model : LightGBM (LGBM)<br>📌 API : RESTful API (FastAPI + SQLAlchemy)</b>
 
-
-
+## ✅ 프로젝트 수행 내용
+  - 데이터 수집 및 전처리
+  - 모델 개발 및 성능 평가
+  - API 및 웹 서비스 개발
+  - 배포 및 운영
 
 
 
